@@ -13,7 +13,8 @@
     "mysql:stop": "brew services stop mysql && echo '🛑 MySQL stopped'",
     "mysql:status": "brew services list | grep mysql",
     "dev": "pnpm run mysql:start && pnpm run start:dev",
-    "dev:stop": "pnpm run mysql:stop"
+    "dev:stop": "pnpm run mysql:stop",
+    "test:db": "ts-node scripts/test-db-setup.ts"
   },
   "keywords": [
     "nestjs",
