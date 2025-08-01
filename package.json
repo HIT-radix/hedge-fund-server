@@ -6,15 +6,14 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/main.js",
-    "start:dev": "ts-node src/main.ts",
-    "start:debug": "ts-node --inspect-brk src/main.ts",
+    "start:dev": "ts-node -r tsconfig-paths/register src/main.ts",
+    "start:debug": "ts-node --inspect-brk -r tsconfig-paths/register src/main.ts",
     "start:prod": "node dist/main.js",
     "mysql:start": "brew services start mysql && echo '✅ MySQL started'",
     "mysql:stop": "brew services stop mysql && echo '🛑 MySQL stopped'",
     "mysql:status": "brew services list | grep mysql",
     "dev": "pnpm run mysql:start && pnpm run start:dev",
-    "dev:stop": "pnpm run mysql:stop",
-    "test:db": "ts-node scripts/test-db-setup.ts"
+    "dev:stop": "pnpm run mysql:stop"
   },
   "keywords": [
     "nestjs",
