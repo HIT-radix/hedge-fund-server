@@ -6,15 +6,15 @@ import {
   GatewayApiClient,
   StreamTransactionsResponse,
 } from "@radixdlt/babylon-gateway-api-sdk";
-import { NftHolder } from "../database/entities/nft-holder.entity";
-import { LedgerState } from "../database/entities/ledger-state.entity";
-import { NFTHoldersList, EventEmitter } from "../interfaces/types.interface";
-import { RADIX_CONFIG } from "../config/radix.config";
+import { NftHolder } from "@/database/entities/nft-holder.entity";
+import { LedgerState } from "@/database/entities/ledger-state.entity";
+import { NFTHoldersList, EventEmitter } from "@/interfaces/types.interface";
+import { RADIX_CONFIG } from "@/config/radix.config";
 import {
   DAPP_DEFINITION_ADDRESS,
   NODE_STAKING_COMPONENT_ADDRESS,
   NODE_STAKING_USER_BADGE_ADDRESS,
-} from "src/constants/address";
+} from "@/constants/address";
 
 @Injectable()
 export class SnapshotsService {
