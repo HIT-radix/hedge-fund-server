@@ -1,11 +1,11 @@
-import { Controller, Post, HttpException, HttpStatus } from "@nestjs/common";
+import { Controller, HttpException, HttpStatus, Get } from "@nestjs/common";
 import { SnapshotsService } from "./snapshots.service";
 
 @Controller("snapshots")
 export class SnapshotsController {
   constructor(private readonly snapshotsService: SnapshotsService) {}
 
-  @Post("update-nft-holders")
+  @Get("update-nft-holders")
   async updateNftHolders() {
     try {
       const result = await this.snapshotsService.updateNftHolders();
