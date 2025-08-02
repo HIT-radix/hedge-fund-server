@@ -23,6 +23,7 @@ export class SnapshotsService {
 
   constructor(
     @InjectRepository(NftHolder)
+    private nftHolderRepository: Repository<NftHolder>,
     @InjectRepository(LedgerState)
     private ledgerStateRepository: Repository<LedgerState>,
     private dataSource: DataSource
@@ -41,12 +42,56 @@ export class SnapshotsService {
   async getLastLedgerState(): Promise<LedgerState | null> {
     try {
       const lastState = await this.ledgerStateRepository.findOne({
+        where: {},
         order: { state_version: "DESC" },
       });
       return lastState;
     } catch (error) {
       this.logger.error("Error fetching last ledger state:", error);
       return null;
+    }
+  }
+
+  /**
+   * Update or create ledger state entry
+   */
+  private async upsertLedgerState(
+    manager: any,
+    newLedgerState: any
+  ): Promise<void> {
+    const ledgerStateRepo = manager.getRepository(LedgerState);
+
+    // Check if any ledger state exists
+    const existingState = await ledgerStateRepo.findOne({
+      where: {},
+      order: { state_version: "DESC" },
+    });
+
+    if (existingState) {
+      // Update the existing entry
+      await ledgerStateRepo.update(existingState.id, {
+        epoch: newLedgerState.epoch,
+        network: newLedgerState.network,
+        proposer_round_timestamp: newLedgerState.proposer_round_timestamp,
+        round: newLedgerState.round,
+        state_version: newLedgerState.state_version,
+      });
+      this.logger.log(
+        `Updated ledger state with version: ${newLedgerState.state_version}`
+      );
+    } else {
+      // Create new entry
+      const ledgerState = ledgerStateRepo.create({
+        epoch: newLedgerState.epoch,
+        network: newLedgerState.network,
+        proposer_round_timestamp: newLedgerState.proposer_round_timestamp,
+        round: newLedgerState.round,
+        state_version: newLedgerState.state_version,
+      });
+      await ledgerStateRepo.save(ledgerState);
+      this.logger.log(
+        `Created new ledger state with version: ${newLedgerState.state_version}`
+      );
     }
   }
 
@@ -156,24 +201,8 @@ export class SnapshotsService {
 
       // Use transaction to ensure data consistency
       await this.dataSource.transaction(async (manager) => {
-        // Replace the ledger state (there's only one entry in the table)
-        const ledgerStateRepo = manager.getRepository(LedgerState);
-
-        // Clear existing ledger state and save the new one
-        await ledgerStateRepo.clear();
-
-        const ledgerState = ledgerStateRepo.create({
-          epoch: newHolders.ledger_state.epoch,
-          network: newHolders.ledger_state.network,
-          proposer_round_timestamp:
-            newHolders.ledger_state.proposer_round_timestamp,
-          round: newHolders.ledger_state.round,
-          state_version: newHolders.ledger_state.state_version,
-        });
-        await ledgerStateRepo.save(ledgerState);
-        this.logger.log(
-          `Replaced ledger state with version: ${ledgerState.state_version}`
-        );
+        // Update or create ledger state entry
+        await this.upsertLedgerState(manager, newHolders.ledger_state);
 
         // Save or update NFT holders
         if (Object.keys(newHolders.nft_holders).length > 0) {
