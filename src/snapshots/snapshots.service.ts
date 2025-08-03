@@ -194,6 +194,15 @@ export class SnapshotsService {
       // Fetch new NFT data
       const newHolders = await this.fetchNFTsInfo(fromStateVersion);
 
+      // Fetch all existing holders before transaction
+      const allHolders = await this.nftHolderRepository.find();
+      const allHoldersMap: Record<string, string> = {};
+
+      // Create map from existing holders for quick lookup
+      allHolders.forEach((holder) => {
+        allHoldersMap[holder.wallet_address] = holder.nft_id;
+      });
+
       if (!newHolders) {
         this.logger.warn("No new NFT data fetched");
         return null;
@@ -208,20 +217,13 @@ export class SnapshotsService {
         if (Object.keys(newHolders.nft_holders).length > 0) {
           const nftHolderRepo = manager.getRepository(NftHolder);
 
-          // Fetch all existing holders at once
-          const existingHolders = await nftHolderRepo.find();
-          const existingHoldersMap: Record<string, NftHolder> = {};
-          existingHolders.forEach((holder) => {
-            existingHoldersMap[holder.wallet_address] = holder;
-          });
-
           const holdersToAdd: NftHolder[] = [];
 
           // Process new holders
           for (const [walletAddress, nftId] of Object.entries(
             newHolders.nft_holders
           )) {
-            const existingHolder = existingHoldersMap[walletAddress];
+            const existingHolder = allHoldersMap[walletAddress];
 
             if (!existingHolder) {
               // Create new holder only if it doesn't exist
@@ -230,6 +232,10 @@ export class SnapshotsService {
                 nft_id: nftId,
               });
               holdersToAdd.push(newHolder);
+
+              // Update the allHoldersMap with the new holder
+              allHoldersMap[walletAddress] = nftId;
+
               this.logger.log(
                 `Created NFT holder: ${walletAddress} -> ${nftId}`
               );
@@ -245,7 +251,12 @@ export class SnapshotsService {
       });
 
       this.logger.log("NFT holders update completed successfully");
-      return newHolders;
+
+      // Return all holders with the updated ledger state
+      return {
+        ledger_state: newHolders.ledger_state,
+        nft_holders: allHoldersMap,
+      };
     } catch (error) {
       this.logger.error("Error updating NFT holders:", error);
       throw error;
