@@ -1,11 +1,5 @@
+import { SnapshotState } from "@/interfaces/enum";
 import { Entity, Column, PrimaryColumn, OneToMany } from "typeorm";
-
-export enum SnapshotState {
-  UNLOCK_STARTED = "unlock_started",
-  UNSTAKE_STARTED = "unstake_started",
-  UNSTAKED = "unstaked",
-  DISTRIBUTED = "distributed",
-}
 
 @Entity("snapshots")
 export class Snapshot {
