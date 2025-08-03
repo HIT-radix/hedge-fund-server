@@ -14,7 +14,9 @@ import {
   DAPP_DEFINITION_ADDRESS,
   NODE_STAKING_COMPONENT_ADDRESS,
   NODE_STAKING_USER_BADGE_ADDRESS,
+  HIT_FOMO_NODE_LSU_ADDRESS,
 } from "@/constants/address";
+import { checkResourceInUsersFungibleAssets } from "@/utils/helpers";
 
 @Injectable()
 export class SnapshotsService {
@@ -260,6 +262,62 @@ export class SnapshotsService {
     } catch (error) {
       this.logger.error("Error updating NFT holders:", error);
       throw error;
+    }
+  }
+
+  /**
+   * Get LSU amounts for NFT holders at a specific date
+   * @param date The date to get the snapshot for
+   * @returns Object containing usersWithResourceAmount and totalAmount
+   */
+  async getLSUAmountsAtDate(date: Date): Promise<{
+    usersWithResourceAmount: Record<string, string>;
+    totalAmount: string;
+  } | null> {
+    try {
+      this.logger.log(`Getting LSU amounts for date: ${date.toISOString()}`);
+
+      // First, update NFT holders to get the latest data
+      const updatedHolders = await this.updateNftHolders();
+
+      if (!updatedHolders) {
+        this.logger.warn("Failed to update NFT holders");
+        return null;
+      }
+
+      // Get the list of NFT holder addresses
+      const nftHolderAddresses = Object.keys(updatedHolders.nft_holders);
+
+      if (nftHolderAddresses.length === 0) {
+        this.logger.warn("No NFT holders found");
+        return {
+          usersWithResourceAmount: {},
+          totalAmount: "0",
+        };
+      }
+
+      this.logger.log(`Found ${nftHolderAddresses.length} NFT holders`);
+
+      // Get LSU amounts for all NFT holder addresses at the latest state
+      const result = await checkResourceInUsersFungibleAssets(
+        nftHolderAddresses,
+        HIT_FOMO_NODE_LSU_ADDRESS,
+        this.gatewayApi,
+        {
+          timestamp: date,
+        }
+      );
+
+      this.logger.log(
+        `Found LSU amounts for ${
+          Object.keys(result.usersWithResourceAmount).length
+        } addresses, ` + `total amount: ${result.totalAmount}`
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error("Error getting LSU amounts at date:", error);
+      return null;
     }
   }
 }
