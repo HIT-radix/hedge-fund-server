@@ -18,5 +18,6 @@ import { SnapshotAccount } from "@/database/entities/snapshot-account.entity";
   ],
   controllers: [SnapshotsController],
   providers: [SnapshotsService],
+  exports: [SnapshotsService],
 })
 export class SnapshotsModule {}
