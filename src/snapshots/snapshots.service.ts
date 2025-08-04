@@ -8,7 +8,10 @@ import {
 } from "@radixdlt/babylon-gateway-api-sdk";
 import { NftHolder } from "@/database/entities/nft-holder.entity";
 import { LedgerState } from "@/database/entities/ledger-state.entity";
+import { Snapshot } from "@/database/entities/snapshot.entity";
+import { SnapshotAccount } from "@/database/entities/snapshot-account.entity";
 import { NFTHoldersList, EventEmitter } from "@/interfaces/types.interface";
+import { SnapshotState } from "@/interfaces/enum";
 import { RADIX_CONFIG } from "@/config/radix.config";
 import {
   DAPP_DEFINITION_ADDRESS,
@@ -28,6 +31,10 @@ export class SnapshotsService {
     private nftHolderRepository: Repository<NftHolder>,
     @InjectRepository(LedgerState)
     private ledgerStateRepository: Repository<LedgerState>,
+    @InjectRepository(Snapshot)
+    private snapshotRepository: Repository<Snapshot>,
+    @InjectRepository(SnapshotAccount)
+    private snapshotAccountRepository: Repository<SnapshotAccount>,
     private dataSource: DataSource
   ) {
     this.gatewayApi = GatewayApiClient.initialize({
@@ -317,6 +324,149 @@ export class SnapshotsService {
       return result;
     } catch (error) {
       this.logger.error("Error getting LSU amounts at date:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Save a snapshot and its associated account data to the database
+   * @param date The date of the snapshot
+   * @param state The state of the snapshot (default: UNLOCK_STARTED)
+   * @param claimNftId Optional claim NFT ID
+   * @param accountsData Object containing LSU amounts for each account
+   * @returns Promise<Snapshot | null> The saved snapshot or null if failed
+   */
+  async saveSnapshot(
+    date: Date,
+    accountsData: Record<string, string>,
+    state: SnapshotState = SnapshotState.UNLOCK_STARTED,
+    claimNftId?: string | null
+  ): Promise<Snapshot | null> {
+    try {
+      this.logger.log(`Saving snapshot for date: ${date.toISOString()}`);
+
+      return await this.dataSource.transaction(async (manager) => {
+        const snapshotRepo = manager.getRepository(Snapshot);
+        const snapshotAccountRepo = manager.getRepository(SnapshotAccount);
+
+        // Check if snapshot already exists for this date
+        const existingSnapshot = await snapshotRepo.findOne({
+          where: { date },
+        });
+
+        let snapshot: Snapshot;
+
+        if (existingSnapshot) {
+          // Update existing snapshot
+          existingSnapshot.state = state;
+          if (claimNftId !== undefined) {
+            existingSnapshot.claim_nft_id = claimNftId;
+          }
+          snapshot = await snapshotRepo.save(existingSnapshot);
+          this.logger.log(
+            `Updated existing snapshot for date: ${date.toISOString()}`
+          );
+
+          // Remove existing snapshot accounts for this date
+          await snapshotAccountRepo.delete({ date });
+          this.logger.log(
+            `Removed existing snapshot accounts for date: ${date.toISOString()}`
+          );
+        } else {
+          // Create new snapshot
+          snapshot = snapshotRepo.create({
+            date,
+            state,
+            claim_nft_id: claimNftId || null,
+          });
+          snapshot = await snapshotRepo.save(snapshot);
+          this.logger.log(
+            `Created new snapshot for date: ${date.toISOString()}`
+          );
+        }
+
+        // Create snapshot account entries
+        const snapshotAccounts: SnapshotAccount[] = [];
+
+        for (const [accountAddress, lsuAmount] of Object.entries(
+          accountsData
+        )) {
+          this.logger.log(
+            `Creating snapshot account for address: ${accountAddress}, LSU amount: ${lsuAmount}`
+          );
+          const snapshotAccount = snapshotAccountRepo.create({
+            date,
+            account: accountAddress,
+            lsu_amount: lsuAmount,
+            fund_units_sent: false, // Default to false
+            snapshot,
+          });
+          snapshotAccounts.push(snapshotAccount);
+        }
+
+        // Batch save all snapshot accounts
+        if (snapshotAccounts.length > 0) {
+          await snapshotAccountRepo.insert(snapshotAccounts);
+          this.logger.log(
+            `Saved ${
+              snapshotAccounts.length
+            } snapshot accounts for date: ${date.toISOString()}`
+          );
+        }
+
+        this.logger.log(
+          `Successfully saved snapshot with ${snapshotAccounts.length} accounts`
+        );
+        return snapshot;
+      });
+    } catch (error) {
+      this.logger.error("Error saving snapshot:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Create and save a snapshot using LSU amounts from a specific date
+   * @param date The date to create the snapshot for
+   * @param state The state of the snapshot (default: UNLOCK_STARTED)
+   * @param claimNftId Optional claim NFT ID
+   * @returns Promise<Snapshot | null> The created snapshot or null if failed
+   */
+  async createSnapshotAtDate(
+    date: Date,
+    state: SnapshotState = SnapshotState.UNLOCK_STARTED,
+    claimNftId?: string | null
+  ): Promise<Snapshot | null> {
+    try {
+      this.logger.log(`Creating snapshot at date: ${date.toISOString()}`);
+
+      // Get LSU amounts for the specified date
+      const lsuData = await this.getLSUAmountsAtDate(date);
+
+      if (!lsuData) {
+        this.logger.warn(`No LSU data found for date: ${date.toISOString()}`);
+        return null;
+      }
+
+      // Save the snapshot with the LSU data
+      const snapshot = await this.saveSnapshot(
+        date,
+        lsuData.usersWithResourceAmount,
+        state,
+        claimNftId
+      );
+
+      if (snapshot) {
+        this.logger.log(
+          `Successfully created snapshot at ${date.toISOString()} with total LSU amount: ${
+            lsuData.totalAmount
+          }`
+        );
+      }
+
+      return snapshot;
+    } catch (error) {
+      this.logger.error("Error creating snapshot at date:", error);
       return null;
     }
   }
