@@ -179,7 +179,7 @@ export class SnapshotsService {
       };
     } catch (error) {
       this.logger.error("Error in fetchNFTsInfo:", error);
-      return null;
+      throw error;
     }
   }
 
@@ -324,7 +324,7 @@ export class SnapshotsService {
       return result;
     } catch (error) {
       this.logger.error("Error getting LSU amounts at date:", error);
-      return null;
+      throw error;
     }
   }
 
@@ -421,7 +421,7 @@ export class SnapshotsService {
       });
     } catch (error) {
       this.logger.error("Error saving snapshot:", error);
-      return null;
+      throw error;
     }
   }
 
@@ -467,7 +467,7 @@ export class SnapshotsService {
       return snapshot;
     } catch (error) {
       this.logger.error("Error creating snapshot at date:", error);
-      return null;
+      throw error;
     }
   }
 }
