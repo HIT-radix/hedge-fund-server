@@ -128,4 +128,22 @@ export class SnapshotsController {
       throw error;
     }
   }
+
+  @Get("older-snapshots")
+  async getOlderSnapshots() {
+    try {
+      const snapshots = await this.snapshotsService.getOlderSnapshots();
+      return {
+        success: true,
+        message: "Snapshots older than 29 days retrieved successfully",
+        data: snapshots,
+      };
+    } catch (error) {
+      this.logger.error("Error fetching older snapshots:", error);
+      throw new HttpException(
+        "Failed to fetch snapshots older than 29 days",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
 }
