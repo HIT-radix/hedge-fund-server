@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, DataSource } from "typeorm";
+import { Repository, DataSource, LessThan } from "typeorm";
 import {
   CommittedTransactionInfo,
   GatewayApiClient,
@@ -467,6 +467,41 @@ export class SnapshotsService {
       return snapshot;
     } catch (error) {
       this.logger.error("Error creating snapshot at date:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch snapshots that are older than 29 days from the current time
+   * @returns Promise<Snapshot[]> Array of snapshots older than 29 days
+   */
+  async getOlderSnapshots(): Promise<Snapshot[]> {
+    try {
+      // Calculate the date that is 29 days ago from now
+      const twentyNineDaysAgo = new Date();
+      twentyNineDaysAgo.setDate(twentyNineDaysAgo.getDate() - 1);
+
+      this.logger.log(
+        `Fetching snapshots older than 29 days (before ${twentyNineDaysAgo.toISOString()})`
+      );
+
+      // Query snapshots where date is less than twentyNineDaysAgo
+      const oldSnapshots = await this.snapshotRepository.find({
+        where: {
+          date: LessThan(twentyNineDaysAgo),
+        },
+        order: {
+          date: "DESC",
+        },
+      });
+
+      this.logger.log(
+        `Found ${oldSnapshots.length} snapshots older than 29 days`
+      );
+
+      return oldSnapshots;
+    } catch (error) {
+      this.logger.error("Error fetching snapshots older than 29 days:", error);
       throw error;
     }
   }
