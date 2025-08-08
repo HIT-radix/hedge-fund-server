@@ -130,18 +130,65 @@ export class SnapshotsController {
   }
 
   @Get("older-snapshots")
-  async getOlderSnapshots() {
+  async getOlderSnapshots(
+    @Query("beforeDate") beforeDateStr?: string,
+    @Query("daysAgo") daysAgoStr?: string,
+    @Query("claimNftId") claimNftId?: string,
+    @Query("claimNftIdNull") claimNftIdNull?: string // if provided (any value), we filter for NULL claim_nft_id
+  ) {
     try {
-      const snapshots = await this.snapshotsService.getOlderSnapshots();
+      let beforeDate: Date | undefined = undefined;
+      if (beforeDateStr) {
+        const d = new Date(beforeDateStr);
+        if (isNaN(d.getTime())) {
+          throw new HttpException(
+            "Invalid beforeDate. Use ISO string.",
+            HttpStatus.BAD_REQUEST
+          );
+        }
+        beforeDate = d;
+      }
+
+      let daysAgo: number | undefined = undefined;
+      if (daysAgoStr) {
+        const parsed = Number(daysAgoStr);
+        if (isNaN(parsed) || parsed < 0) {
+          throw new HttpException(
+            "Invalid daysAgo. Provide a non-negative number.",
+            HttpStatus.BAD_REQUEST
+          );
+        }
+        daysAgo = parsed;
+      }
+
+      // Determine claim nft id filter logic
+      let claimFilter: string | null | undefined = undefined;
+      if (claimNftIdNull !== undefined) {
+        claimFilter = null; // explicit request for NULLs
+      } else if (claimNftId !== undefined) {
+        claimFilter = claimNftId;
+      }
+
+      const snapshots = await this.snapshotsService.getSnapshotsFromDb({
+        beforeDate,
+        daysAgo,
+        claimNftId: claimFilter,
+      });
       return {
         success: true,
-        message: "Snapshots older than 29 days retrieved successfully",
+        message: "Older snapshots retrieved successfully",
         data: snapshots,
+        meta: {
+          beforeDate: beforeDate?.toISOString() ?? null,
+          daysAgo: daysAgo ?? null,
+          claimNftId: claimFilter === undefined ? undefined : claimFilter, // could be null
+        },
       };
     } catch (error) {
       this.logger.error("Error fetching older snapshots:", error);
+      if (error instanceof HttpException) throw error;
       throw new HttpException(
-        "Failed to fetch snapshots older than 29 days",
+        "Failed to fetch older snapshots",
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
