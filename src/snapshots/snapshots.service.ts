@@ -607,4 +607,45 @@ export class SnapshotsService {
       throw error;
     }
   }
+
+  /**
+   * Fetch snapshot accounts with optional filters.
+   * If no filters are provided, returns all snapshot accounts.
+   * @param walletAddress (optional) filter by a specific wallet/account address
+   * @param fundSent (optional) filter by fund_units_sent flag
+   * @returns Promise<SnapshotAccount[]> list of snapshot account rows
+   */
+  async getSnapshotAccounts(options?: {
+    walletAddress?: string;
+    fundSent?: boolean;
+  }): Promise<SnapshotAccount[]> {
+    try {
+      const { walletAddress, fundSent } = options || {};
+
+      const where: any = {};
+      if (walletAddress) {
+        where.account = walletAddress;
+      }
+      if (fundSent !== undefined) {
+        where.fund_units_sent = fundSent;
+      }
+
+      this.logger.log(
+        `Fetching snapshot accounts with filters walletAddress=$${
+          walletAddress || "*"
+        }, fundSent=$${fundSent === undefined ? "*" : fundSent}`
+      );
+
+      const accounts = await this.snapshotAccountRepository.find({
+        where,
+        order: { date: "DESC" },
+      });
+
+      this.logger.log(`Found ${accounts.length} snapshot accounts`);
+      return accounts;
+    } catch (error) {
+      this.logger.error("Error fetching snapshot accounts:", error);
+      throw error;
+    }
+  }
 }
