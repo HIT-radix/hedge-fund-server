@@ -331,16 +331,18 @@ export class SnapshotsService {
   /**
    * Save a snapshot and its associated account data to the database
    * @param date The date of the snapshot
+   * @param accountsData Object containing LSU amounts for each account
    * @param state The state of the snapshot (default: UNLOCK_STARTED)
    * @param claimNftId Optional claim NFT ID
-   * @param accountsData Object containing LSU amounts for each account
+   * @param updateAccounts Whether to update/create associated accounts (default: true)
    * @returns Promise<Snapshot | null> The saved snapshot or null if failed
    */
   async saveSnapshot(
     date: Date,
     accountsData: Record<string, string>,
     state: SnapshotState = SnapshotState.UNLOCK_STARTED,
-    claimNftId?: string | null
+    claimNftId?: string | null,
+    updateAccounts: boolean = true
   ): Promise<Snapshot | null> {
     try {
       this.logger.log(`Saving snapshot for date: ${date.toISOString()}`);
@@ -367,11 +369,13 @@ export class SnapshotsService {
             `Updated existing snapshot for date: ${date.toISOString()}`
           );
 
-          // Remove existing snapshot accounts for this date
-          await snapshotAccountRepo.delete({ date });
-          this.logger.log(
-            `Removed existing snapshot accounts for date: ${date.toISOString()}`
-          );
+          // Remove existing snapshot accounts for this date only if updateAccounts is true
+          if (updateAccounts) {
+            await snapshotAccountRepo.delete({ date });
+            this.logger.log(
+              `Removed existing snapshot accounts for date: ${date.toISOString()}`
+            );
+          }
         } else {
           // Create new snapshot
           snapshot = snapshotRepo.create({
@@ -385,38 +389,44 @@ export class SnapshotsService {
           );
         }
 
-        // Create snapshot account entries
-        const snapshotAccounts: SnapshotAccount[] = [];
+        // Create snapshot account entries only if updateAccounts is true
+        if (updateAccounts) {
+          const snapshotAccounts: SnapshotAccount[] = [];
 
-        for (const [accountAddress, lsuAmount] of Object.entries(
-          accountsData
-        )) {
+          for (const [accountAddress, lsuAmount] of Object.entries(
+            accountsData
+          )) {
+            this.logger.log(
+              `Creating snapshot account for address: ${accountAddress}, LSU amount: ${lsuAmount}`
+            );
+            const snapshotAccount = snapshotAccountRepo.create({
+              date,
+              account: accountAddress,
+              lsu_amount: lsuAmount,
+              fund_units_sent: false, // Default to false
+              snapshot,
+            });
+            snapshotAccounts.push(snapshotAccount);
+          }
+
+          // Batch save all snapshot accounts
+          if (snapshotAccounts.length > 0) {
+            await snapshotAccountRepo.insert(snapshotAccounts);
+            this.logger.log(
+              `Saved ${
+                snapshotAccounts.length
+              } snapshot accounts for date: ${date.toISOString()}`
+            );
+          }
+
           this.logger.log(
-            `Creating snapshot account for address: ${accountAddress}, LSU amount: ${lsuAmount}`
+            `Successfully saved snapshot with ${snapshotAccounts.length} accounts`
           );
-          const snapshotAccount = snapshotAccountRepo.create({
-            date,
-            account: accountAddress,
-            lsu_amount: lsuAmount,
-            fund_units_sent: false, // Default to false
-            snapshot,
-          });
-          snapshotAccounts.push(snapshotAccount);
-        }
-
-        // Batch save all snapshot accounts
-        if (snapshotAccounts.length > 0) {
-          await snapshotAccountRepo.insert(snapshotAccounts);
+        } else {
           this.logger.log(
-            `Saved ${
-              snapshotAccounts.length
-            } snapshot accounts for date: ${date.toISOString()}`
+            `Successfully saved snapshot without updating accounts`
           );
         }
-
-        this.logger.log(
-          `Successfully saved snapshot with ${snapshotAccounts.length} accounts`
-        );
         return snapshot;
       });
     } catch (error) {
