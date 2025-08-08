@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, DataSource, LessThan } from "typeorm";
+import { Repository, DataSource, LessThan, IsNull, In } from "typeorm";
 import {
   CommittedTransactionInfo,
   GatewayApiClient,
@@ -486,33 +486,89 @@ export class SnapshotsService {
    * Fetch snapshots that are older than 29 days from the current time
    * @returns Promise<Snapshot[]> Array of snapshots older than 29 days
    */
-  async getOlderSnapshots(): Promise<Snapshot[]> {
+  async getSnapshotsFromDb(options?: {
+    exactDate?: Date; // fetch snapshots exactly at this date (overrides other filters)
+    beforeDate?: Date; // explicit cutoff date (exclusive)
+    daysAgo?: number; // number of days to subtract from "now" to form cutoff (exclusive)
+    claimNftId?: string | null; // optional filter on claim_nft_id (null means snapshots where claim_nft_id IS NULL)
+    state?: SnapshotState | SnapshotState[]; // optional state filter (single or multiple)
+  }): Promise<Snapshot[]> {
     try {
-      // Calculate the date that is 29 days ago from now
-      const twentyNineDaysAgo = new Date();
-      twentyNineDaysAgo.setDate(twentyNineDaysAgo.getDate() - 1);
+      const { exactDate, beforeDate, daysAgo, claimNftId, state } =
+        options || {};
 
-      this.logger.log(
-        `Fetching snapshots older than 29 days (before ${twentyNineDaysAgo.toISOString()})`
-      );
+      // Build where clause
+      const where: any = {};
 
-      // Query snapshots where date is less than twentyNineDaysAgo
-      const oldSnapshots = await this.snapshotRepository.find({
-        where: {
-          date: LessThan(twentyNineDaysAgo),
-        },
-        order: {
-          date: "DESC",
-        },
+      if (exactDate) {
+        // Exact date match has precedence
+        where.date = exactDate;
+        this.logger.log(
+          `Fetching snapshots for exact date ${exactDate.toISOString()}$${
+            claimNftId !== undefined ? ` with claim_nft_id ${claimNftId}` : ""
+          }`
+        );
+      } else {
+        // Determine cutoff date precedence: explicit beforeDate > daysAgo > default(29)
+        let cutoff: Date;
+        if (beforeDate) {
+          cutoff = beforeDate;
+        } else if (typeof daysAgo === "number" && !isNaN(daysAgo)) {
+          cutoff = new Date();
+          cutoff.setDate(cutoff.getDate() - daysAgo);
+        } else {
+          cutoff = new Date();
+          cutoff.setDate(cutoff.getDate() - 29);
+        }
+
+        where.date = LessThan(cutoff);
+        this.logger.log(
+          `Fetching snapshots older than cutoff ${cutoff.toISOString()} (${
+            daysAgo ?? (beforeDate ? "explicit" : 29)
+          } days reference)$${
+            claimNftId !== undefined ? ` with claim_nft_id ${claimNftId}` : ""
+          }`
+        );
+      }
+
+      if (claimNftId !== undefined) {
+        where.claim_nft_id = claimNftId === null ? IsNull() : claimNftId;
+      }
+
+      if (state !== undefined) {
+        if (Array.isArray(state)) {
+          where.state = In(state);
+        } else {
+          where.state = state;
+        }
+      }
+
+      const snapshots = await this.snapshotRepository.find({
+        where,
+        order: { date: "DESC" },
       });
 
       this.logger.log(
-        `Found ${oldSnapshots.length} snapshots older than 29 days`
+        `Found ${snapshots.length} snapshots for criteria (exactDate=$${
+          exactDate ? exactDate.toISOString() : "none"
+        }, claimFilter=$${
+          claimNftId === undefined
+            ? "none"
+            : claimNftId === null
+            ? "NULL"
+            : claimNftId
+        }, stateFilter=$${
+          state === undefined
+            ? "none"
+            : Array.isArray(state)
+            ? state.join(",")
+            : state
+        })`
       );
 
-      return oldSnapshots;
+      return snapshots;
     } catch (error) {
-      this.logger.error("Error fetching snapshots older than 29 days:", error);
+      this.logger.error("Error fetching snapshots:", error);
       throw error;
     }
   }
