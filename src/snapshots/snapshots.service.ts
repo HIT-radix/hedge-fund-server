@@ -361,6 +361,7 @@ export class SnapshotsService {
         if (existingSnapshot) {
           // Update existing snapshot
           existingSnapshot.state = state;
+          existingSnapshot.date = date;
           if (claimNftId !== undefined) {
             existingSnapshot.claim_nft_id = claimNftId;
           }
