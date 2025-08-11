@@ -616,13 +616,17 @@ export class SnapshotsService {
    * @returns Promise<SnapshotAccount[]> list of snapshot account rows
    */
   async getSnapshotAccounts(options?: {
+    date?: Date; // exact snapshot date to filter
     walletAddress?: string;
     fundSent?: boolean;
   }): Promise<SnapshotAccount[]> {
     try {
-      const { walletAddress, fundSent } = options || {};
+      const { date, walletAddress, fundSent } = options || {};
 
       const where: any = {};
+      if (date) {
+        where.date = date;
+      }
       if (walletAddress) {
         where.account = walletAddress;
       }
@@ -631,9 +635,11 @@ export class SnapshotsService {
       }
 
       this.logger.log(
-        `Fetching snapshot accounts with filters walletAddress=$${
-          walletAddress || "*"
-        }, fundSent=$${fundSent === undefined ? "*" : fundSent}`
+        `Fetching snapshot accounts with filters date=$${
+          date ? date.toISOString() : "*"
+        }, walletAddress=$${walletAddress || "*"}, fundSent=$${
+          fundSent === undefined ? "*" : fundSent
+        }`
       );
 
       const accounts = await this.snapshotAccountRepository.find({
