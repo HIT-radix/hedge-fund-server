@@ -46,6 +46,61 @@ export class SnapshotsService {
   }
 
   /**
+   * Get all holders of the Node LSU token
+   * @returns Promise<Record<string, { address: string; amount: string }>> Object of holders with their LSU amounts
+   */
+  async getNodeLSUholder(): Promise<
+    Record<string, { address: string; amount: string }>
+  > {
+    try {
+      this.logger.log(
+        `Fetching all holders of Node LSU token: ${HIT_FOMO_NODE_LSU_ADDRESS}`
+      );
+
+      const holders: Record<string, { address: string; amount: string }> = {};
+      let nextCursor: string | undefined = undefined;
+      let totalProcessed = 0;
+
+      do {
+        const response =
+          await this.gatewayApi.extensions.innerClient.resourceHoldersPage({
+            resourceHoldersRequest: {
+              resource_address: HIT_FOMO_NODE_LSU_ADDRESS,
+              limit_per_page: 1000,
+              cursor: nextCursor,
+            },
+          });
+
+        // Process items from the current page
+        for (const item of response.items) {
+          if (item.type === "FungibleResource") {
+            holders[item.holder_address] = {
+              address: item.holder_address,
+              amount: item.amount,
+            };
+          }
+        }
+
+        // Update for next iteration
+        totalProcessed += response.items.length;
+        nextCursor = response.next_cursor;
+
+        this.logger.log(
+          `Processed ${totalProcessed}/${response.total_count} Node LSU holders`
+        );
+      } while (nextCursor);
+
+      this.logger.log(
+        `Found ${Object.keys(holders).length} Node LSU holders in total`
+      );
+      return holders;
+    } catch (error) {
+      this.logger.error("Error fetching Node LSU holders:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Get the last stored ledger state from the database
    */
   async getLastLedgerState(): Promise<LedgerState | null> {
