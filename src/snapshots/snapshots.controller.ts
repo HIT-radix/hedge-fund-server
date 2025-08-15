@@ -75,12 +75,9 @@ export class SnapshotsController {
   @Get("create-snapshot")
   async createSnapshotAtDate() {
     try {
-      // Use current date
-      const date = new Date();
+      const snapshot = await this.snapshotsService.createSnapshotAtDate();
 
-      const result = await this.snapshotsService.createSnapshotAtDate(date);
-
-      if (!result) {
+      if (!snapshot) {
         throw new HttpException(
           "Failed to create snapshot - no data available",
           HttpStatus.NOT_FOUND
@@ -90,11 +87,11 @@ export class SnapshotsController {
       return {
         success: true,
         message: "Snapshot created successfully",
-        date: date.toISOString(),
+        date: snapshot.date.toISOString(),
         data: {
-          date: result.date,
-          state: result.state,
-          claim_nft_id: result.claim_nft_id,
+          date: snapshot.date,
+          state: snapshot.state,
+          claim_nft_id: snapshot.claim_nft_id,
         },
       };
     } catch (error) {
