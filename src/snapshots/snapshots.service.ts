@@ -500,15 +500,15 @@ export class SnapshotsService {
    * @returns Promise<Snapshot | null> The created snapshot or null if failed
    */
   async createSnapshotAtDate(
-    date: Date,
     state: SnapshotState = SnapshotState.UNLOCK_STARTED,
     claimNftId?: string | null
-  ): Promise<Snapshot | null> {
+  ) {
     try {
+      const date = new Date();
       this.logger.log(`Creating snapshot at date: ${date.toISOString()}`);
 
       // Get LSU amounts for the specified date
-      const lsuData = await this.getLSUAmountsAtDate(date);
+      const lsuData = await this.getNodeLSUholder();
 
       if (!lsuData) {
         this.logger.warn(`No LSU data found for date: ${date.toISOString()}`);
