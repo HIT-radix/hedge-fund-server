@@ -20,6 +20,7 @@ import {
   HIT_FOMO_NODE_LSU_ADDRESS,
 } from "@/constants/address";
 import { checkResourceInUsersFungibleAssets } from "@/utils/helpers";
+import Decimal from "decimal.js";
 
 @Injectable()
 export class SnapshotsService {
@@ -49,17 +50,16 @@ export class SnapshotsService {
    * Get all holders of the Node LSU token
    * @returns Promise<Record<string, { address: string; amount: string }>> Object of holders with their LSU amounts
    */
-  async getNodeLSUholder(): Promise<
-    Record<string, { address: string; amount: string }>
-  > {
+  async getNodeLSUholder() {
     try {
       this.logger.log(
         `Fetching all holders of Node LSU token: ${HIT_FOMO_NODE_LSU_ADDRESS}`
       );
 
-      const holders: Record<string, { address: string; amount: string }> = {};
+      const holders: Record<string, string> = {};
       let nextCursor: string | undefined = undefined;
       let totalProcessed = 0;
+      let totalAmount = "0";
 
       do {
         const response =
@@ -74,10 +74,8 @@ export class SnapshotsService {
         // Process items from the current page
         for (const item of response.items) {
           if (item.type === "FungibleResource") {
-            holders[item.holder_address] = {
-              address: item.holder_address,
-              amount: item.amount,
-            };
+            holders[item.holder_address] = item.amount;
+            totalAmount = new Decimal(totalAmount).add(item.amount).toString();
           }
         }
 
@@ -93,7 +91,10 @@ export class SnapshotsService {
       this.logger.log(
         `Found ${Object.keys(holders).length} Node LSU holders in total`
       );
-      return holders;
+      return {
+        usersWithResourceAmount: holders,
+        totalAmount,
+      };
     } catch (error) {
       this.logger.error("Error fetching Node LSU holders:", error);
       throw error;
