@@ -73,9 +73,9 @@ export class SnapshotsController {
   }
 
   @Get("create-snapshot")
-  async createSnapshotAtDate() {
+  async createSnapshot() {
     try {
-      const snapshot = await this.snapshotsService.createSnapshotAtDate();
+      const snapshot = await this.snapshotsService.createSnapshot();
 
       if (!snapshot) {
         throw new HttpException(

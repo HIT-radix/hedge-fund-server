@@ -499,7 +499,7 @@ export class SnapshotsService {
    * @param claimNftId Optional claim NFT ID
    * @returns Promise<Snapshot | null> The created snapshot or null if failed
    */
-  async createSnapshotAtDate(
+  async createSnapshot(
     state: SnapshotState = SnapshotState.UNLOCK_STARTED,
     claimNftId?: string | null
   ) {
