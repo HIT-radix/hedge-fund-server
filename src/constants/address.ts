@@ -15,9 +15,16 @@ export const NODE_STAKING_USER_BADGE_ADDRESS =
   "resource_rdx1ntmkq3eddym9lzppx8sg2elpqwexhsppcdscwu5s7ca5u79hcaztu3";
 
 export const HIT_FOMO_NODE_LSU_ADDRESS =
-  "resource_rdx1t4d3ka2x2j35e30gh75j6hma6fccwdsft88h2v2ul4qmqshnwjmxf7";
+  process.env.ENVIRONMENT === "dev"
+    ? "resource_tdx_2_1thrg4addeue0w87wksukm86updhptw9zr7z4xlrjpecltgpfpxhxce"
+    : "resource_rdx1t4d3ka2x2j35e30gh75j6hma6fccwdsft88h2v2ul4qmqshnwjmxf7";
 
 export const XRD_RESOURCE_ADDRESS =
   process.env.ENVIRONMENT === "dev"
     ? "resource_tdx_2_1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxtfd2jc"
     : "resource_rdx1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxradxrd";
+
+export const FUND_MANAGER_COMPONENT =
+  process.env.ENVIRONMENT === "dev"
+    ? "component_tdx_2_1cqn24ymyzqst9zgf6cx2dzp0464nffmqdax272h9hzmj756fqfk503"
+    : "component_rdx1cqn24ymyzqst9zgf6cx2dzp0464nffmqdax272h9hzmj756fqfk503";
