@@ -65,7 +65,10 @@ export class SnapshotsService {
 
         // Process items from the current page
         for (const item of response.items) {
-          if (item.type === "FungibleResource") {
+          if (
+            item.type === "FungibleResource" &&
+            item.holder_address.startsWith("account")
+          ) {
             holders[item.holder_address] = item.amount;
             totalAmount = new Decimal(totalAmount).add(item.amount).toString();
           }
