@@ -55,8 +55,8 @@ const deriveAccountAddressFromPublicKey = (
   );
 };
 
-export type RadixEngineClient = ReturnType<typeof RadixEngineClient>;
-export const RadixEngineClient = ({
+export type TypescriptWalletClient = ReturnType<typeof TypescriptWalletClient>;
+export const TypescriptWalletClient = ({
   networkName,
   mnemonic,
   derivationIndex,

@@ -1,8 +1,8 @@
-import { radixEngineClient } from "../config";
+import { typescriptWallet } from "../config";
 import { logger } from "./logger";
 
 export const sendTransactionManifest = (txManifest: string, lock_fee = 100) => {
-  return radixEngineClient
+  return typescriptWallet
     .getManifestBuilder()
     .andThen(({ wellKnownAddresses, convertStringManifest }) => {
       logger.debug(txManifest);
@@ -15,9 +15,9 @@ export const sendTransactionManifest = (txManifest: string, lock_fee = 100) => {
           
           ${txManifest}
     `)
-        .andThen(radixEngineClient.submitTransaction)
+        .andThen(typescriptWallet.submitTransaction)
         .andThen(({ txId }) =>
-          radixEngineClient.gatewayClient
+          typescriptWallet.gatewayClient
             .pollTransactionStatus(txId)
             .map(() => txId)
         );
