@@ -11,32 +11,36 @@ import {
   bucket,
   decimal,
   generateRandomNonce,
-} from '@radixdlt/radix-engine-toolkit'
-import { Result, ResultAsync, err, ok } from 'neverthrow'
-import { typedError } from '../helpers/typed-error'
-import { mnemonicToKeyPair } from '../helpers/mnemonicToKeyPair'
-import { GatewayClient } from './gateway-client'
-import { logger } from '../helpers/logger'
-import { RadixNetworkConfig } from '@radixdlt/radix-dapp-toolkit'
-import { getNetworkConfig } from '../helpers/getNetworkConfig'
+} from "@radixdlt/radix-engine-toolkit";
+import { Result, ResultAsync, err, ok } from "neverthrow";
+import {
+  typedError,
+  mnemonicToKeyPair,
+  logger,
+  getNetworkConfig,
+} from "../helpers";
+import { GatewayClient } from "./gateway-client";
+import { RadixNetworkConfig } from "@radixdlt/radix-dapp-toolkit";
 
 const getSignerKeys = (mnemonic: string, derivationPath: string) => {
   const { privateKey } = mnemonicToKeyPair(mnemonic, derivationPath).unwrapOr({
-    privateKey: '',
-  })
+    privateKey: "",
+  });
 
-  if (!privateKey) return err('Unable to derive private key')
+  if (!privateKey) return err("Unable to derive private key");
 
-  const signerPrivateKey = new PrivateKey.Ed25519(privateKey)
+  const signerPrivateKey = new PrivateKey.Ed25519(privateKey);
 
-  const signerPublicKey = new PublicKey.Ed25519(signerPrivateKey.publicKeyHex())
+  const signerPublicKey = new PublicKey.Ed25519(
+    signerPrivateKey.publicKeyHex()
+  );
 
   return ok({
     signerPrivateKey,
     signerPublicKey,
-    publicKeyHex: Buffer.from(signerPublicKey.publicKey).toString('hex'),
-  })
-}
+    publicKeyHex: Buffer.from(signerPublicKey.publicKey).toString("hex"),
+  });
+};
 
 const deriveAccountAddressFromPublicKey = (
   publicKey: PublicKey,
@@ -48,53 +52,53 @@ const deriveAccountAddressFromPublicKey = (
       networkId
     ),
     typedError
-  )
-}
+  );
+};
 
-export type RadixEngineClient = ReturnType<typeof RadixEngineClient>
+export type RadixEngineClient = ReturnType<typeof RadixEngineClient>;
 export const RadixEngineClient = ({
   networkName,
   mnemonic,
   derivationIndex,
 }: {
-  networkName: keyof typeof RadixNetworkConfig
-  mnemonic: string
-  derivationIndex: number
+  networkName: keyof typeof RadixNetworkConfig;
+  mnemonic: string;
+  derivationIndex: number;
 }) => {
-  const networkConfig = getNetworkConfig(networkName)
-  const { networkId, dashboardUrl } = networkConfig
+  const networkConfig = getNetworkConfig(networkName);
+  const { networkId, dashboardUrl } = networkConfig;
 
   const KEY_TYPE = {
     TRANSACTION_SIGNING: 1460,
     AUTHENTICATION_SIGNING: 1678,
     MESSAGE_ENCRYPTION: 1391,
-  } as const
+  } as const;
 
   const ENTITY_TYPE = {
     ACCOUNT: 525,
     IDENTITY: 618,
-  } as const
+  } as const;
 
-  const ENTITY_INDEX = derivationIndex
+  const ENTITY_INDEX = derivationIndex;
 
-  const DERIVATION_PATH = `m/44'/1022'/${networkId}'/${ENTITY_TYPE.ACCOUNT}'/${KEY_TYPE.TRANSACTION_SIGNING}'/${ENTITY_INDEX}'`
+  const DERIVATION_PATH = `m/44'/1022'/${networkId}'/${ENTITY_TYPE.ACCOUNT}'/${KEY_TYPE.TRANSACTION_SIGNING}'/${ENTITY_INDEX}'`;
 
-  const result = Result.combine([getSignerKeys(mnemonic, DERIVATION_PATH)])
+  const result = Result.combine([getSignerKeys(mnemonic, DERIVATION_PATH)]);
 
-  if (result.isErr()) throw result.error
+  if (result.isErr()) throw result.error;
 
-  const { signerPublicKey, signerPrivateKey } = result.value[0]
+  const { signerPublicKey, signerPrivateKey } = result.value[0];
 
-  const gatewayClient = GatewayClient(networkConfig)
+  const gatewayClient = GatewayClient(networkConfig);
 
   const getAccountAddress = () =>
-    deriveAccountAddressFromPublicKey(signerPublicKey, networkId)
+    deriveAccountAddressFromPublicKey(signerPublicKey, networkId);
 
   const getKnownAddresses = () =>
     ResultAsync.fromPromise(
       RadixEngineToolkit.Utils.knownAddresses(networkId),
       typedError
-    )
+    );
 
   const createTransactionHeader = (signerPublicKey: PublicKey) =>
     gatewayClient.getEpoch().map(
@@ -111,10 +115,10 @@ export const RadixEngineClient = ({
           true /* Whether the notary signature is also considered as an intent signature */,
         tipPercentage: 0 /* The percentage of fees that goes to validators */,
       })
-    )
+    );
 
   const getTransactionBuilder = () =>
-    ResultAsync.fromPromise(TransactionBuilder.new(), typedError)
+    ResultAsync.fromPromise(TransactionBuilder.new(), typedError);
 
   const compileNotarizedTransaction = (
     notarizedTransactionPromise: Promise<NotarizedTransaction>
@@ -126,7 +130,7 @@ export const RadixEngineClient = ({
           typedError
         )
       )
-      .map((byteArray) => Buffer.from(byteArray).toString('hex'))
+      .map((byteArray) => Buffer.from(byteArray).toString("hex"));
 
   const getTransactionIntentHash = (
     notarizedTransaction: Promise<NotarizedTransaction>
@@ -139,7 +143,7 @@ export const RadixEngineClient = ({
           ),
           typedError
         )
-    )
+    );
 
   const createSignedNotarizedTransaction = (
     transactionManifest: TransactionManifest
@@ -153,7 +157,7 @@ export const RadixEngineClient = ({
           builder,
           transactionHeader,
           signerPrivateKey,
-        }
+        };
       })
       .andThen(({ builder, transactionHeader, signerPrivateKey }) => {
         try {
@@ -162,11 +166,11 @@ export const RadixEngineClient = ({
               .header(transactionHeader)
               .manifest(transactionManifest)
               .notarize(signerPrivateKey)
-          )
+          );
         } catch (error) {
-          return err(error)
+          return err(error);
         }
-      })
+      });
 
   const getAddresses = () =>
     ResultAsync.combine([getAccountAddress(), getKnownAddresses()]).map(
@@ -175,7 +179,7 @@ export const RadixEngineClient = ({
         accountAddress,
         ...knownAddresses,
       })
-    )
+    );
 
   const buildTransaction = (transactionManifest: TransactionManifest) =>
     createSignedNotarizedTransaction(transactionManifest).andThen(
@@ -188,28 +192,28 @@ export const RadixEngineClient = ({
           txId: id,
           compiledTransactionHex,
         }))
-    )
+    );
 
   const submitTransaction = (transactionManifest: TransactionManifest) => {
     convertParsedManifest(transactionManifest).map((data) => {
-      logger.debug(`Submitting transaction`)
-      logger.debug(data.instructions.value)
-    })
+      logger.debug(`Submitting transaction`);
+      logger.debug(data.instructions.value);
+    });
 
     return buildTransaction(transactionManifest)
       .andThen(
         ({ compiledTransactionHex: notarized_transaction_hex, txId }) => {
-          logger.debug(`${dashboardUrl}/transaction/${txId}`)
+          logger.debug(`${dashboardUrl}/transaction/${txId}`);
           return gatewayClient
             .submitNotarizedTransactionHex(notarized_transaction_hex)
-            .map((response) => ({ ...response, txId }))
+            .map((response) => ({ ...response, txId }));
         }
       )
       .mapErr((error) => {
-        logger.error(error)
-        return error
-      })
-  }
+        logger.error(error);
+        return error;
+      });
+  };
 
   const decodeSbor = (rpdBuffer: Buffer) =>
     ResultAsync.fromPromise(
@@ -219,7 +223,7 @@ export const RadixEngineClient = ({
         ManifestSborStringRepresentation.ManifestString
       ),
       typedError
-    )
+    );
 
   const convertParsedManifest = (
     transactionManifest: TransactionManifest
@@ -228,28 +232,28 @@ export const RadixEngineClient = ({
       RadixEngineToolkit.Instructions.convert(
         transactionManifest.instructions,
         networkId,
-        'String'
+        "String"
       ),
       typedError
-    ).map((instructions) => ({ instructions, blobs: [] }))
+    ).map((instructions) => ({ instructions, blobs: [] }));
 
   const convertStringManifest = (
     stringManifest: string
   ): ResultAsync<TransactionManifest, Error> => {
     return ResultAsync.fromPromise(
       RadixEngineToolkit.Instructions.convert(
-        { kind: 'String', value: stringManifest },
+        { kind: "String", value: stringManifest },
         networkId,
-        'Parsed'
+        "Parsed"
       ),
       typedError
     )
       .map((instructions) => ({ instructions, blobs: [] }))
       .mapErr((err) => {
-        console.log(err)
-        return err
-      })
-  }
+        console.log(err);
+        return err;
+      });
+  };
 
   const getXrdFromFaucet = () =>
     getManifestBuilder().andThen(
@@ -258,12 +262,12 @@ export const RadixEngineClient = ({
           builder
             .callMethod(
               wellKnownAddresses.componentAddresses.faucet,
-              'lock_fee',
+              "lock_fee",
               [decimal(10)]
             )
             .callMethod(
               wellKnownAddresses.componentAddresses.faucet,
-              'free',
+              "free",
               []
             )
             .takeAllFromWorktop(
@@ -271,7 +275,7 @@ export const RadixEngineClient = ({
               (builder, bucketId) =>
                 builder.callMethod(
                   wellKnownAddresses.accountAddress,
-                  'deposit',
+                  "deposit",
                   [bucket(bucketId)]
                 )
             )
@@ -280,7 +284,7 @@ export const RadixEngineClient = ({
         ).andThen(({ txId }) =>
           gatewayClient.pollTransactionStatus(txId).map(() => txId)
         )
-    )
+    );
 
   const getManifestBuilder = () =>
     getAddresses().map((wellKnownAddresses) => ({
@@ -288,7 +292,7 @@ export const RadixEngineClient = ({
       wellKnownAddresses,
       convertStringManifest,
       submitTransaction,
-    }))
+    }));
 
   return {
     getAccountAddress,
@@ -301,5 +305,5 @@ export const RadixEngineClient = ({
     decodeSbor,
     convertStringManifest,
     getXrdFromFaucet,
-  }
-}
+  };
+};
