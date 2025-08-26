@@ -422,4 +422,98 @@ export class SnapshotsService {
       throw error;
     }
   }
+
+  /**
+   * Delete a snapshot and its related snapshot accounts from the database
+   * @param date The date of the snapshot to delete
+   * @param claimNftId Optional claim NFT ID filter - if provided, only delete snapshot with matching claim_nft_id
+   * @returns Promise<{ success: boolean; deletedAccountsCount: number; message: string }> Result of the deletion operation
+   */
+  async deleteSnapshot(
+    date: Date,
+    claimNftId?: string | null
+  ): Promise<{
+    success: boolean;
+    deletedAccountsCount: number;
+    message: string;
+  }> {
+    try {
+      this.logger.log(
+        `Attempting to delete snapshot for date: ${date.toISOString()}${
+          claimNftId !== undefined ? ` with claim_nft_id: ${claimNftId}` : ""
+        }`
+      );
+
+      return await this.dataSource.transaction(async (manager) => {
+        const snapshotRepo = manager.getRepository(Snapshot);
+        const snapshotAccountRepo = manager.getRepository(SnapshotAccount);
+
+        // Build where clause for snapshot
+        const snapshotWhere: any = { date };
+        if (claimNftId !== undefined) {
+          snapshotWhere.claim_nft_id =
+            claimNftId === null ? IsNull() : claimNftId;
+        }
+
+        // Check if snapshot exists
+        const existingSnapshot = await snapshotRepo.findOne({
+          where: snapshotWhere,
+        });
+
+        if (!existingSnapshot) {
+          const message = `No snapshot found for date: ${date.toISOString()}${
+            claimNftId !== undefined ? ` with claim_nft_id: ${claimNftId}` : ""
+          }`;
+          this.logger.warn(message);
+          return {
+            success: false,
+            deletedAccountsCount: 0,
+            message,
+          };
+        }
+
+        // First, delete all related snapshot accounts
+        const deleteAccountsResult = await snapshotAccountRepo.delete({ date });
+        const deletedAccountsCount = deleteAccountsResult.affected || 0;
+
+        this.logger.log(
+          `Deleted ${deletedAccountsCount} snapshot accounts for date: ${date.toISOString()}`
+        );
+
+        // Then, delete the snapshot itself
+        const deleteSnapshotResult = await snapshotRepo.delete(snapshotWhere);
+        const deletedSnapshotsCount = deleteSnapshotResult.affected || 0;
+
+        if (deletedSnapshotsCount === 0) {
+          const message = `Failed to delete snapshot for date: ${date.toISOString()}${
+            claimNftId !== undefined ? ` with claim_nft_id: ${claimNftId}` : ""
+          }`;
+          this.logger.error(message);
+          return {
+            success: false,
+            deletedAccountsCount,
+            message,
+          };
+        }
+
+        const successMessage = `Successfully deleted snapshot for date: ${date.toISOString()}${
+          claimNftId !== undefined ? ` with claim_nft_id: ${claimNftId}` : ""
+        } and ${deletedAccountsCount} related snapshot accounts`;
+
+        this.logger.log(successMessage);
+
+        return {
+          success: true,
+          deletedAccountsCount,
+          message: successMessage,
+        };
+      });
+    } catch (error) {
+      const errorMessage = `Error deleting snapshot for date: ${date.toISOString()}${
+        claimNftId !== undefined ? ` with claim_nft_id: ${claimNftId}` : ""
+      }`;
+      this.logger.error(errorMessage, error);
+      throw error;
+    }
+  }
 }
