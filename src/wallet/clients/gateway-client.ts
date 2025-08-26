@@ -1,36 +1,33 @@
+import { NetworkConfig, TransactionStatus } from "@radixdlt/radix-dapp-toolkit";
+import { ResultAsync, err, errAsync, okAsync } from "neverthrow";
+import { filter, first, firstValueFrom, switchMap } from "rxjs";
+import { logger, ExponentialBackoff, typedError } from "../helpers";
 import {
   GatewayApiClient,
-  NetworkConfig,
   TransactionPreviewRequest,
-  TransactionStatus,
-} from '@radixdlt/radix-dapp-toolkit'
-import { ResultAsync, err, errAsync, okAsync } from 'neverthrow'
-import { typedError } from '../helpers/typed-error'
-import { filter, first, firstValueFrom, switchMap } from 'rxjs'
-import { logger } from '../helpers/logger'
-import { ExponentialBackoff } from '../helpers/exponential-backoff'
+} from "@radixdlt/babylon-gateway-api-sdk";
 
-export type GatewayClient = ReturnType<typeof GatewayClient>
+export type GatewayClient = ReturnType<typeof GatewayClient>;
 export const GatewayClient = (networkConfig: NetworkConfig) => {
   const { status, transaction, state } = GatewayApiClient.initialize({
     basePath: networkConfig.gatewayUrl,
-    applicationName: 'dApp mgmt',
-  })
+    applicationName: "dApp mgmt",
+  });
 
   const wellKnownAddresses = () =>
     ResultAsync.fromPromise(status.getNetworkConfiguration(), typedError).map(
       (response) => response
-    )
+    );
 
   const getEpoch = () =>
     ResultAsync.fromPromise(status.getCurrent(), typedError).map(
       (response) => response.ledger_state.epoch
-    )
+    );
 
   const getStatus = () =>
     ResultAsync.fromPromise(status.getNetworkConfiguration(), typedError).map(
       (response) => response
-    )
+    );
 
   const submitNotarizedTransactionHex = (notarized_transaction_hex: string) =>
     ResultAsync.fromPromise(
@@ -40,10 +37,10 @@ export const GatewayClient = (networkConfig: NetworkConfig) => {
         },
       }),
       typedError
-    )
+    );
 
   const getTransactionStatus = (txId: string) =>
-    ResultAsync.fromPromise(transaction.getStatus(txId), typedError)
+    ResultAsync.fromPromise(transaction.getStatus(txId), typedError);
 
   const getCommittedDetails = (txId: string) =>
     ResultAsync.fromPromise(
@@ -64,7 +61,7 @@ export const GatewayClient = (networkConfig: NetworkConfig) => {
         ((res.transaction.receipt?.state_updates as any)
           ?.new_global_entities as any[]) || [],
       stateVersion: res.transaction.state_version,
-    }))
+    }));
 
   const getState = (addresses: string[]) =>
     ResultAsync.fromPromise(
@@ -72,7 +69,7 @@ export const GatewayClient = (networkConfig: NetworkConfig) => {
         stateEntityDetailsRequest: { addresses },
       }),
       typedError
-    )
+    );
 
   const preview = (transactionPreviewRequest: TransactionPreviewRequest) =>
     ResultAsync.fromPromise(
@@ -80,7 +77,7 @@ export const GatewayClient = (networkConfig: NetworkConfig) => {
         transactionPreviewRequest,
       }),
       typedError
-    )
+    );
 
   const pollTransactionStatus = (txId: string) => {
     const retry = ExponentialBackoff({
@@ -88,37 +85,37 @@ export const GatewayClient = (networkConfig: NetworkConfig) => {
       multiplier: 2,
       timeout: 60_000,
       interval: 1_000,
-    })
+    });
 
     const completedTransactionStatus = new Set<TransactionStatus>([
-      'CommittedSuccess',
-      'CommittedFailure',
-      'Rejected',
-    ])
+      "CommittedSuccess",
+      "CommittedFailure",
+      "Rejected",
+    ]);
 
     return ResultAsync.fromPromise(
       firstValueFrom(
         retry.withBackoff$.pipe(
           switchMap((result) => {
-            if (result.isErr()) return [err(result.error)]
+            if (result.isErr()) return [err(result.error)];
 
             return getTransactionStatus(txId).andThen((response) => {
               logger?.debug({
-                event: 'pollTransactionStatus',
+                event: "pollTransactionStatus",
                 retry: result.value + 1,
                 status: response.status,
                 txId,
-              })
+              });
 
               if (completedTransactionStatus.has(response.status)) {
-                return response.status === 'CommittedSuccess'
+                return response.status === "CommittedSuccess"
                   ? okAsync(response)
-                  : errAsync(response)
+                  : errAsync(response);
               }
 
-              retry.trigger.next()
-              return okAsync(undefined)
-            })
+              retry.trigger.next();
+              return okAsync(undefined);
+            });
           }),
           filter(
             (result) =>
@@ -128,8 +125,8 @@ export const GatewayClient = (networkConfig: NetworkConfig) => {
         )
       ),
       typedError
-    ).andThen((result) => result)
-  }
+    ).andThen((result) => result);
+  };
 
   return {
     getCommittedDetails,
@@ -142,5 +139,5 @@ export const GatewayClient = (networkConfig: NetworkConfig) => {
     networkConfig,
     wellKnownAddresses,
     getStatus,
-  }
-}
+  };
+};
