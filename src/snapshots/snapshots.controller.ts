@@ -111,4 +111,46 @@ export class SnapshotsController {
       );
     }
   }
+
+  @Get("delete-snapshot")
+  async deleteSnapshot() {
+    try {
+      const date = new Date("2025-08-26 19:04:02");
+      if (isNaN(date.getTime())) {
+        throw new HttpException(
+          "Invalid date format. Use ISO string format.",
+          HttpStatus.BAD_REQUEST
+        );
+      }
+
+      // Determine claim nft id filter logic
+      let claimFilter: string | null | undefined = undefined;
+
+      const result = await this.snapshotsService.deleteSnapshot(
+        date,
+        claimFilter
+      );
+
+      if (!result.success) {
+        throw new HttpException(result.message, HttpStatus.NOT_FOUND);
+      }
+
+      return {
+        success: true,
+        message: result.message,
+        data: {
+          date: date.toISOString(),
+          deletedAccountsCount: result.deletedAccountsCount,
+          claimNftId: claimFilter === undefined ? undefined : claimFilter,
+        },
+      };
+    } catch (error) {
+      this.logger.error("Error deleting snapshot:", error);
+      if (error instanceof HttpException) throw error;
+      throw new HttpException(
+        "Failed to delete snapshot",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
 }
