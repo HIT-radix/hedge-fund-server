@@ -28,3 +28,8 @@ export const FUND_MANAGER_COMPONENT =
   process.env.ENVIRONMENT === "dev"
     ? "component_tdx_2_1cqn24ymyzqst9zgf6cx2dzp0464nffmqdax272h9hzmj756fqfk503"
     : "component_rdx1cqn24ymyzqst9zgf6cx2dzp0464nffmqdax272h9hzmj756fqfk503";
+
+export const FUND_BOT_BADGE =
+  process.env.ENVIRONMENT === "dev"
+    ? "resource_tdx_2_1thlu6g2lc0d0852lpce9qdaadvr709u58d8fr607vg8qku3ue0swe9"
+    : "resource_tdx_2_1thlu6g2lc0d0852lpce9qdaadvr709u58d8fr607vg8qku3ue0swe9";
