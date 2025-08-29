@@ -11,8 +11,12 @@ import { RADIX_CONFIG } from "@/config/radix.config";
 import {
   DAPP_DEFINITION_ADDRESS,
   HIT_FOMO_NODE_LSU_ADDRESS,
+  VALIDATOR_ADDRESS,
 } from "@/constants/address";
 import Decimal from "decimal.js";
+import { sendTransactionManifest } from "@/wallet/helpers";
+import { get_start_unlock_owner_stake_units_manifest } from "@/utils/manifests";
+import { fetchValidatorInfo } from "radix-utils";
 
 @Injectable()
 export class SnapshotsService {
@@ -514,6 +518,58 @@ export class SnapshotsService {
       }`;
       this.logger.error(errorMessage, error);
       throw error;
+    }
+  }
+
+  async scheduledOperation_STEP_1() {
+    const date = new Date();
+    // Implementation for the scheduled start unlock operation
+    const node_info = await fetchValidatorInfo(
+      this.gatewayApi,
+      VALIDATOR_ADDRESS
+    );
+
+    console.log("-----------node info", node_info);
+
+    const availableLockedLSUs = node_info.currentlyEarnedLockedLSUs;
+
+    const snapshot = await this.createSnapshot(
+      date,
+      SnapshotState.UNLOCK_STARTED
+    );
+
+    console.log("==========", snapshot);
+
+    const pingResult = await this.pingFundManagerToStartUnlockOperation(
+      availableLockedLSUs
+    );
+
+    if (pingResult.success) {
+      console.log("==========", pingResult);
+      return pingResult;
+    } else {
+      console.log("========== delete snapshot");
+      this.deleteSnapshot(snapshot.date, snapshot.claim_nft_id);
+    }
+  }
+
+  async pingFundManagerToStartUnlockOperation(availableLockedLSUs: string) {
+    try {
+      const manifest = await get_start_unlock_owner_stake_units_manifest(
+        availableLockedLSUs
+      );
+      return await sendTransactionManifest(manifest, 10).match(
+        (txId) => ({ success: true, txId }),
+        (error) => ({
+          success: false,
+          error: (error as Error).message || "Failed to send transaction",
+        })
+      );
+    } catch (error) {
+      return {
+        success: false,
+        error: (error as Error).message || "Failed to send transaction",
+      };
     }
   }
 }
