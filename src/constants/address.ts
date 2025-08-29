@@ -33,3 +33,8 @@ export const FUND_BOT_BADGE =
   process.env.ENVIRONMENT === "dev"
     ? "resource_tdx_2_1thlu6g2lc0d0852lpce9qdaadvr709u58d8fr607vg8qku3ue0swe9"
     : "resource_tdx_2_1thlu6g2lc0d0852lpce9qdaadvr709u58d8fr607vg8qku3ue0swe9";
+
+export const VALIDATOR_ADDRESS =
+  process.env.ENVIRONMENT === "dev"
+    ? "validator_tdx_2_1svff7mkddhm9dy325f3ckx72cxqsl49ewy74667pchqfkxl7wxpa8r"
+    : "validator_rdx1swez5cqmw4d6tls0mcldehnfhpxge0mq7cmnypnjz909apqqjgx6n9";
