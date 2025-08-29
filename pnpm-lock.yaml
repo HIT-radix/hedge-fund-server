@@ -56,6 +56,9 @@ importers:
       neverthrow:
         specifier: ^8.2.0
         version: 8.2.0
+      radix-utils:
+        specifier: ^1.1.1
+        version: 1.1.1
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -1557,6 +1560,10 @@ packages:
   qs@6.14.0:
     resolution: {integrity: sha512-YWWTjgABSKcvs/nWBi9PycY/JiPJqOD4JA6o9Sej2AtvSGarXxKC3OQSk4pAarbdQlKAh5D4FCQkJNkW+GAn3w==}
     engines: {node: '>=0.6'}
+
+  radix-utils@1.1.1:
+    resolution: {integrity: sha512-xUJMdttfY8x2PzPU5HVyRGxSWCUpYgOl0O5A3C1sPl6jzh+AZnffQWDjk9GmWhPPb0IuRUpPDmaGQUDrDgHqIQ==}
+    engines: {node: '>=16.0.0'}
 
   randombytes@2.1.0:
     resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
@@ -3663,6 +3670,11 @@ snapshots:
   qs@6.14.0:
     dependencies:
       side-channel: 1.1.0
+
+  radix-utils@1.1.1:
+    dependencies:
+      '@radixdlt/babylon-gateway-api-sdk': 1.10.1
+      decimal.js: 10.6.0
 
   randombytes@2.1.0:
     dependencies:
