@@ -212,11 +212,11 @@ export class SnapshotsService {
    * @returns Promise<Snapshot | null> The created snapshot or null if failed
    */
   async createSnapshot(
+    date: Date,
     state: SnapshotState = SnapshotState.UNLOCK_STARTED,
     claimNftId?: string | null
   ) {
     try {
-      const date = new Date();
       this.logger.log(`Creating snapshot at date: ${date.toISOString()}`);
 
       // Get LSU amounts for the specified date
