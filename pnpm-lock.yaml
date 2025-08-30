@@ -57,8 +57,8 @@ importers:
         specifier: ^8.2.0
         version: 8.2.0
       radix-utils:
-        specifier: ^1.1.1
-        version: 1.1.1
+        specifier: ^1.2.0
+        version: 1.2.0
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -1561,8 +1561,8 @@ packages:
     resolution: {integrity: sha512-YWWTjgABSKcvs/nWBi9PycY/JiPJqOD4JA6o9Sej2AtvSGarXxKC3OQSk4pAarbdQlKAh5D4FCQkJNkW+GAn3w==}
     engines: {node: '>=0.6'}
 
-  radix-utils@1.1.1:
-    resolution: {integrity: sha512-xUJMdttfY8x2PzPU5HVyRGxSWCUpYgOl0O5A3C1sPl6jzh+AZnffQWDjk9GmWhPPb0IuRUpPDmaGQUDrDgHqIQ==}
+  radix-utils@1.2.0:
+    resolution: {integrity: sha512-2pKGKkWRaHz8ecKwF+sIr8tMZSqoQ8itXV00dH/ZPkH5Rg5mGl1Wjb8zbPyuGgulCREYWihHFVQLPpQgSUoeyQ==}
     engines: {node: '>=16.0.0'}
 
   randombytes@2.1.0:
@@ -3671,7 +3671,7 @@ snapshots:
     dependencies:
       side-channel: 1.1.0
 
-  radix-utils@1.1.1:
+  radix-utils@1.2.0:
     dependencies:
       '@radixdlt/babylon-gateway-api-sdk': 1.10.1
       decimal.js: 10.6.0
