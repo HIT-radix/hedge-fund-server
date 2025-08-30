@@ -3,6 +3,7 @@ import {
   LedgerStateSelector,
 } from "@radixdlt/babylon-gateway-api-sdk";
 import { Decimal } from "decimal.js";
+import { sendTransactionManifest } from "@/wallet/helpers";
 
 // Configure Decimal for our use case
 Decimal.config({
@@ -62,5 +63,31 @@ export const checkResourceInUsersFungibleAssets = async (
   } catch (error) {
     console.log("Error in checkResourceInUsersFungibleAssets", error);
     throw error;
+  }
+};
+
+/**
+ * Execute a transaction manifest and return a standardized result
+ * @param manifest The transaction manifest string
+ * @param lockFee The lock fee for the transaction (default: 10)
+ * @returns Promise with standardized success/error result
+ */
+export const executeTransactionManifest = async (
+  manifest: string,
+  lockFee: number = 10
+): Promise<{ success: boolean; txId?: string; error?: string }> => {
+  try {
+    return await sendTransactionManifest(manifest, lockFee).match(
+      (txId) => ({ success: true, txId }),
+      (error) => ({
+        success: false,
+        error: (error as Error).message || "Failed to send transaction",
+      })
+    );
+  } catch (error) {
+    return {
+      success: false,
+      error: (error as Error).message || "Failed to send transaction",
+    };
   }
 };
