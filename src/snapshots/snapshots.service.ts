@@ -14,9 +14,15 @@ import {
   VALIDATOR_ADDRESS,
 } from "@/constants/address";
 import Decimal from "decimal.js";
-import { sendTransactionManifest } from "@/wallet/helpers";
-import { get_start_unlock_owner_stake_units_manifest } from "@/utils/manifests";
-import { fetchValidatorInfo } from "radix-utils";
+import { executeTransactionManifest } from "@/utils/helpers";
+import {
+  get_start_unlock_owner_stake_units_manifest,
+  get_start_unstake_manifest,
+} from "@/utils/manifests";
+import {
+  fetchValidatorInfo,
+  getEventKeyValuesFromTransaction,
+} from "radix-utils";
 
 @Injectable()
 export class SnapshotsService {
@@ -554,22 +560,53 @@ export class SnapshotsService {
   }
 
   async pingFundManagerToStartUnlockOperation(availableLockedLSUs: string) {
-    try {
-      const manifest = await get_start_unlock_owner_stake_units_manifest(
-        availableLockedLSUs
+    const manifest = await get_start_unlock_owner_stake_units_manifest(
+      availableLockedLSUs
+    );
+    return await executeTransactionManifest(manifest, 10);
+  }
+
+  async pingFundManagerToStartUnstakeOperation() {
+    const manifest = await get_start_unstake_manifest();
+    return await executeTransactionManifest(manifest, 10);
+  }
+
+  async scheduledOperation_STEP_2() {
+    const snapshots = await this.getSnapshotsFromDb({
+      daysAgo: 1,
+      state: SnapshotState.UNLOCK_STARTED,
+    });
+
+    const snapshot = snapshots[0];
+
+    const pingResult = await this.pingFundManagerToStartUnstakeOperation();
+    // txid_tdx_2_19afjcckdk5dmxhruxslpw5d5t290t8jjjh7jn5edrvyhp8zqulkspzqk6z;
+    if (pingResult.success) {
+      console.log("==========", pingResult);
+      const txId = pingResult.txId;
+
+      const eventKeyValues = await getEventKeyValuesFromTransaction(
+        this.gatewayApi,
+        txId,
+        "LsuUnstakeStartedEvent"
       );
-      return await sendTransactionManifest(manifest, 10).match(
-        (txId) => ({ success: true, txId }),
-        (error) => ({
-          success: false,
-          error: (error as Error).message || "Failed to send transaction",
-        })
+
+      const claimNftId = eventKeyValues.claim_nft;
+
+      console.log("======claimNftId", eventKeyValues);
+
+      const updatedSnapshot = await this.saveSnapshot(
+        snapshot.date,
+        {},
+        SnapshotState.UNSTAKE_STARTED,
+        claimNftId,
+        false
       );
-    } catch (error) {
-      return {
-        success: false,
-        error: (error as Error).message || "Failed to send transaction",
-      };
+      return updatedSnapshot;
+    } else {
+      console.log("========== delete snapshot");
     }
+
+    return snapshots;
   }
 }
