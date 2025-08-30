@@ -12,7 +12,7 @@
     "mysql:start": "brew services start mysql && echo '✅ MySQL started'",
     "mysql:stop": "brew services stop mysql && echo '🛑 MySQL stopped'",
     "mysql:status": "brew services list | grep mysql",
-    "dev": "pnpm run mysql:start && pnpm run start:dev",
+    "dev": "pnpm run start:dev",
     "dev:stop": "pnpm run mysql:stop"
   },
   "keywords": [
