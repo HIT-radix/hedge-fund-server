@@ -1,0 +1,81 @@
+import { OracleRequestMessage } from "@/interfaces/types.interface";
+import { typescriptWallet } from "@/wallet/config";
+import {
+  getPublicKey_BLS12_381,
+  hexToUint8Array,
+} from "@/wallet/helpers/noble-curves";
+import { bytesToHex } from "@noble/curves/utils";
+import { bls12_381 } from "@noble/curves/bls12-381";
+import { MORPHER_ORACLE_BACKEND_URL } from "@/constants/endpoints";
+
+// Helper function to convert message to string format for signing
+function morpherRequestMsgToString(msg: OracleRequestMessage): string {
+  return `${msg.marketId}##${msg.publicKeyBLS}##${msg.nftId}`;
+}
+
+// Use custom DST for BLS signatures
+const htfEthereum = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
+
+// Generate morpher oracle message with signature
+export const generateMorpherOracleMessage = (
+  marketId: string,
+  nftId: string,
+  privateKey?: string
+) => {
+  const pvtKey = typescriptWallet.getWalletKeys().value.privateKey;
+  let publicKeyBLS: string = getPublicKey_BLS12_381(
+    privateKey ? privateKey : pvtKey
+  );
+
+  // Create the request message
+  let oracleRequest = {
+    marketId,
+    publicKeyBLS,
+    nftId,
+    signature: "",
+  };
+
+  const msgString = morpherRequestMsgToString(oracleRequest);
+  const msg = new TextEncoder().encode(msgString);
+  const msgHash = bls12_381.longSignatures.hash(msg, htfEthereum);
+  const signature = bls12_381.longSignatures.sign(
+    msgHash,
+    hexToUint8Array(privateKey ? privateKey : pvtKey)
+  );
+  oracleRequest.signature = bytesToHex(signature.toBytes());
+
+  return {
+    oracleRequest,
+    msgHash: bytesToHex(msgHash.toBytes()),
+    signature: oracleRequest.signature,
+  };
+};
+
+// Fetch price data using the signed oracle message
+export const fetchPriceDataFromOracle = async (
+  oracleRequestMsg: OracleRequestMessage
+) => {
+  const oracleUrl = `${MORPHER_ORACLE_BACKEND_URL}/v2/price/${oracleRequestMsg.marketId}/${oracleRequestMsg.publicKeyBLS}/${oracleRequestMsg.nftId}/${oracleRequestMsg.signature}`;
+
+  const response = await fetch(oracleUrl);
+
+  if (!response.ok) {
+    throw new Error(`Oracle API error: ${response.status}`);
+  }
+
+  const priceData = await response.json();
+  return priceData;
+};
+
+export const getPriceDataFromMorpherOracle = async (
+  marketId: string,
+  nftId: string,
+  privateKey?: string
+) => {
+  const oracleRequest = generateMorpherOracleMessage(
+    marketId,
+    nftId,
+    privateKey
+  );
+  return await fetchPriceDataFromOracle(oracleRequest.oracleRequest);
+};
