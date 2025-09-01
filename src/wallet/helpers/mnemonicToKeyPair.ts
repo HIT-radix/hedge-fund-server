@@ -1,6 +1,9 @@
 import * as bip39 from "bip39";
 import { ok } from "neverthrow";
-import { derivePath, getPublicKey } from "ed25519-hd-key";
+import {
+  derivePath,
+  getPublicKey as getpublicKey_ED25519,
+} from "ed25519-hd-key";
 import { secureRandom } from "./secure-random";
 
 export const generateMnemonic = () => bip39.entropyToMnemonic(secureRandom(32));
@@ -16,5 +19,5 @@ export const mnemonicToKeyPair = (mnemonic: string, derivationPath: string) =>
     .andThen((seedHex: string) => deriveChildKey(derivationPath, seedHex))
     .map(({ key }) => ({
       privateKey: key.toString("hex"),
-      publicKey: getPublicKey(key, false).toString("hex"),
+      publicKey: getpublicKey_ED25519(key, false).toString("hex"),
     }));
