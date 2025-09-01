@@ -294,6 +294,16 @@ export const TypescriptWalletClient = ({
       submitTransaction,
     }));
 
+  const getWalletKeys = () => {
+    const publicKeyHex = Buffer.from(signerPublicKey.publicKey).toString("hex");
+    const privateKeyHex = Buffer.from(signerPrivateKey.bytes).toString("hex");
+
+    return ok({
+      privateKey: privateKeyHex,
+      publicKey: publicKeyHex,
+    });
+  };
+
   return {
     getAccountAddress,
     getAddresses,
@@ -301,6 +311,7 @@ export const TypescriptWalletClient = ({
     submitTransaction,
     getManifestBuilder,
     getSignerKeys,
+    getWalletKeys,
     gatewayClient,
     decodeSbor,
     convertStringManifest,
