@@ -1,6 +1,6 @@
 import { bls12_381 } from "@noble/curves/bls12-381";
 // Convert hex string to Uint8Array
-function hexToUint8Array(hex: string): Uint8Array {
+export function hexToUint8Array(hex: string): Uint8Array {
   // Remove '0x' prefix if present
   const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;
   // Ensure even length
