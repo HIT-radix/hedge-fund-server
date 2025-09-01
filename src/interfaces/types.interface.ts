@@ -16,3 +16,10 @@ export interface EventEmitter {
     entity_address?: string;
   };
 }
+
+export type OracleRequestMessage = {
+  marketId: string;
+  publicKeyBLS: string;
+  nftId: string;
+  signature: string;
+};
