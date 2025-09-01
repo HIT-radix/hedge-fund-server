@@ -11,7 +11,9 @@ export function hexToUint8Array(hex: string): Uint8Array {
 }
 
 // Derive the public key from private key (supports both hex string and Uint8Array)
-export function getPublicKey(privateKey: string | Uint8Array): string {
+export function getPublicKey_BLS12_381(
+  privateKey: string | Uint8Array
+): string {
   let privateKeyBytes: Uint8Array;
 
   if (typeof privateKey === "string") {
