@@ -140,7 +140,7 @@ export class SnapshotsService {
           // Update existing snapshot
           existingSnapshot.state = state;
           existingSnapshot.date = date;
-          if (claimNftId !== undefined) {
+          if (Boolean(claimNftId)) {
             existingSnapshot.claim_nft_id = claimNftId;
           }
           snapshot = await snapshotRepo.save(existingSnapshot);
