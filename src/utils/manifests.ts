@@ -81,3 +81,37 @@ export const get_finish_unstake_manifest = async (
       )
     ;`;
 };
+
+export const get_fund_units_distribution_manifest = async (
+  distributions: { address: string; amount: string }[],
+  moreLeft: boolean
+) => {
+  const addressResult = await typescriptWallet.getAccountAddress();
+
+  if (addressResult.isErr()) {
+    throw new Error(`Failed to get account address: ${addressResult.error}`);
+  }
+
+  const accountAddress = addressResult.value;
+
+  return `
+    CALL_METHOD
+      Address("${accountAddress}")
+      "create_proof_of_amount"
+      Address("${FUND_BOT_BADGE}")
+      Decimal("1")
+    ;
+    CALL_METHOD
+      Address("${FUND_MANAGER_COMPONENT}")
+      "fund_units_distribution"
+      Map<Address, Decimal>(
+          ${distributions
+            .map(
+              (dist) =>
+                `Address("${dist.address}") => Decimal("${dist.amount}")`
+            )
+            .join(", ")}
+      )
+      ${moreLeft}  
+    ;`;
+};
