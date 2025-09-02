@@ -1,4 +1,7 @@
-import { OracleRequestMessage } from "@/interfaces/types.interface";
+import {
+  MorpherPriceData,
+  OracleRequestMessage,
+} from "@/interfaces/types.interface";
 import { typescriptWallet } from "@/wallet/config";
 import {
   getPublicKey_BLS12_381,
@@ -63,7 +66,7 @@ export const fetchPriceDataFromOracle = async (
     throw new Error(`Oracle API error: ${response.status}`);
   }
 
-  const priceData = await response.json();
+  const priceData = (await response.json()) as MorpherPriceData;
   return priceData;
 };
 
