@@ -23,3 +23,17 @@ export type OracleRequestMessage = {
   nftId: string;
   signature: string;
 };
+
+export type MorpherPriceData = {
+  data: {
+    version: number;
+    marketId: string;
+    price: string;
+    nonce: string;
+    dataTimestamp: number;
+    oracleTimestamp: number;
+    marketStatusTimestamp: number;
+    marketStatus: string;
+  }[];
+  signature: string;
+};
