@@ -37,13 +37,13 @@ export const get_start_unstake_manifest = async () => {
 
   return `
     CALL_METHOD
-        Address("${accountAddress}")
-        "create_proof_of_amount"
-        Address("${FUND_BOT_BADGE}")
-        Decimal("1")
+      Address("${accountAddress}")
+      "create_proof_of_amount"
+      Address("${FUND_BOT_BADGE}")
+      Decimal("1")
     ;
     CALL_METHOD
-        Address("${FUND_MANAGER_COMPONENT}")
-        "start_unstake"
+      Address("${FUND_MANAGER_COMPONENT}")
+      "start_unstake"
     ;`;
 };
