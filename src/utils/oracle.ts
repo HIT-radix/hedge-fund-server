@@ -82,3 +82,12 @@ export const getPriceDataFromMorpherOracle = async (
   );
   return await fetchPriceDataFromOracle(oracleRequest.oracleRequest);
 };
+
+export function priceMsgToMorpherString(msg: MorpherPriceData): string {
+  return msg.data
+    .map(
+      (el) =>
+        el.marketId + "-" + el.price + "-" + el.nonce + "-" + el.dataTimestamp
+    )
+    .join(",");
+}
