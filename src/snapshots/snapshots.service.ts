@@ -12,10 +12,13 @@ import {
   DAPP_DEFINITION_ADDRESS,
   HIT_FOMO_NODE_LSU_ADDRESS,
   VALIDATOR_ADDRESS,
+  XRD_RESOURCE_ADDRESS,
 } from "@/constants/address";
 import Decimal from "decimal.js";
 import { executeTransactionManifest } from "@/utils/helpers";
 import {
+  get_finish_unstake_manifest,
+  get_fund_units_distribution_manifest,
   get_start_unlock_owner_stake_units_manifest,
   get_start_unstake_manifest,
 } from "@/utils/manifests";
@@ -23,6 +26,11 @@ import {
   fetchValidatorInfo,
   getEventKeyValuesFromTransaction,
 } from "radix-utils";
+import {
+  getPriceDataFromMorpherOracle,
+  priceMsgToMorpherString,
+} from "@/utils/oracle";
+import { MorpherPriceData } from "@/interfaces/types.interface";
 
 @Injectable()
 export class SnapshotsService {
@@ -527,6 +535,147 @@ export class SnapshotsService {
     }
   }
 
+  async testFetchValidatorInfo() {
+    const nodeInfo = await fetchValidatorInfo(
+      this.gatewayApi,
+      VALIDATOR_ADDRESS
+    );
+    return nodeInfo;
+  }
+
+  async pingFundManagerToStartUnlockOperation(availableLockedLSUs: string) {
+    const manifest = await get_start_unlock_owner_stake_units_manifest(
+      availableLockedLSUs
+    );
+    return await executeTransactionManifest(manifest, 10);
+  }
+
+  async pingFundManagerToStartUnstakeOperation() {
+    const manifest = await get_start_unstake_manifest();
+    return await executeTransactionManifest(manifest, 10);
+  }
+
+  async pingFundManagerToFinishUnstakeOperation(
+    claimNftId: string,
+    morpherData: MorpherPriceData
+  ) {
+    const morpherMessage = priceMsgToMorpherString(morpherData);
+    const morpherSignature = morpherData.signature;
+    const manifest = await get_finish_unstake_manifest(claimNftId, [
+      {
+        coinAddress: XRD_RESOURCE_ADDRESS,
+        message: morpherMessage,
+        signature: morpherSignature,
+      },
+    ]);
+    return await executeTransactionManifest(manifest, 10);
+  }
+
+  async pingFundManagerToDistributeFundsUnitsOperation(
+    fundsDistribution: { address: string; amount: string }[],
+    snapshotDate: Date
+  ): Promise<string[]> {
+    const BATCH_SIZE = 50;
+    const totalBatches = Math.ceil(fundsDistribution.length / BATCH_SIZE);
+    const successfulAddresses: string[] = [];
+
+    this.logger.log(
+      `Starting fund distribution for ${fundsDistribution.length} recipients in ${totalBatches} batches`
+    );
+
+    for (let i = 0; i < totalBatches; i++) {
+      const startIndex = i * BATCH_SIZE;
+      const endIndex = Math.min(
+        startIndex + BATCH_SIZE,
+        fundsDistribution.length
+      );
+      const batch = fundsDistribution.slice(startIndex, endIndex);
+      const isLastBatch = i === totalBatches - 1;
+      const moreLeft = !isLastBatch;
+
+      this.logger.log(
+        `Processing batch ${i + 1}/${totalBatches} with ${
+          batch.length
+        } recipients (moreLeft: ${moreLeft})`
+      );
+
+      try {
+        const manifest = await get_fund_units_distribution_manifest(
+          batch,
+          moreLeft
+        );
+
+        const result = await executeTransactionManifest(manifest, 10);
+
+        if (!result.success) {
+          this.logger.error(
+            `Failed to execute batch ${i + 1}/${totalBatches}:`,
+            result.error
+          );
+          throw new Error(`Batch ${i + 1} failed: ${result.error}`);
+        }
+
+        // Add successful addresses from this batch
+        const batchAddresses = batch.map((item) => item.address);
+
+        try {
+          const updateResult = await this.snapshotAccountRepository.update(
+            {
+              date: snapshotDate,
+              account: In(batchAddresses),
+            },
+            { fund_units_sent: true }
+          );
+
+          this.logger.log(
+            `Successfully updated ${
+              updateResult.affected || 0
+            } snapshot accounts as fund_units_sent for batch ${
+              i + 1
+            }/${totalBatches}`
+          );
+        } catch (updateError) {
+          this.logger.error(
+            `Failed to update snapshot accounts for batch ${
+              i + 1
+            }/${totalBatches}:`,
+            updateError
+          );
+          // Abort the entire operation if database update fails
+          throw new Error(
+            `Database update failed for batch ${
+              i + 1
+            }/${totalBatches}. Aborting fund distribution operation for snapshot date: ${snapshotDate}. Error: ${
+              updateError.message || updateError
+            }`
+          );
+        }
+
+        successfulAddresses.push(...batchAddresses);
+
+        this.logger.log(
+          `Successfully executed batch ${
+            i + 1
+          }/${totalBatches} with transaction ID: ${result.txId}. Added ${
+            batchAddresses.length
+          } addresses to successful list.`
+        );
+      } catch (error) {
+        this.logger.error(
+          `Error executing batch ${i + 1}/${totalBatches}:`,
+          error
+        );
+        throw error;
+      }
+    }
+
+    this.logger.log(
+      `Successfully completed all ${totalBatches} batches for fund distribution. Total successful addresses: ${successfulAddresses.length}`
+    );
+
+    return successfulAddresses;
+  }
+
   async scheduledOperation_STEP_1() {
     const date = new Date();
     // Implementation for the scheduled start unlock operation
@@ -557,18 +706,6 @@ export class SnapshotsService {
       console.log("========== delete snapshot");
       this.deleteSnapshot(snapshot.date, snapshot.claim_nft_id);
     }
-  }
-
-  async pingFundManagerToStartUnlockOperation(availableLockedLSUs: string) {
-    const manifest = await get_start_unlock_owner_stake_units_manifest(
-      availableLockedLSUs
-    );
-    return await executeTransactionManifest(manifest, 10);
-  }
-
-  async pingFundManagerToStartUnstakeOperation() {
-    const manifest = await get_start_unstake_manifest();
-    return await executeTransactionManifest(manifest, 10);
   }
 
   async scheduledOperation_STEP_2() {
@@ -608,5 +745,79 @@ export class SnapshotsService {
     }
 
     return snapshots;
+  }
+
+  async scheduledOperation_STEP_3() {
+    const snapshots = await this.getSnapshotsFromDb({
+      daysAgo: 1,
+      state: SnapshotState.UNSTAKE_STARTED,
+    });
+
+    const snapshot = snapshots[0];
+    snapshot.date;
+
+    const priceData = await getPriceDataFromMorpherOracle(
+      "GATEIO:XRD_USDT",
+      snapshot.claim_nft_id
+    );
+
+    const pingResult = await this.pingFundManagerToFinishUnstakeOperation(
+      snapshot.claim_nft_id,
+      priceData
+    );
+
+    if (pingResult.success) {
+      console.log("==========", pingResult);
+      const txId = pingResult.txId;
+
+      const eventKeyValues = await getEventKeyValuesFromTransaction(
+        this.gatewayApi,
+        txId,
+        "LsuUnstakeCompletedEvent"
+      );
+
+      const totalFundsUnitToDistribute =
+        eventKeyValues.fund_units_to_distribute;
+
+      await this.saveSnapshot(
+        snapshot.date,
+        {},
+        SnapshotState.UNSTAKED,
+        null,
+        false
+      );
+
+      const snapshotAccounts = await this.getSnapshotAccounts({
+        date: snapshot.date,
+        fundSent: false,
+      });
+
+      const totalLSUs = snapshotAccounts.reduce(
+        (acc, account) => new Decimal(acc).add(account.lsu_amount),
+        new Decimal(0)
+      );
+
+      let accountsShare: Record<string, string> = {};
+
+      snapshotAccounts.forEach((account) => {
+        const share = new Decimal(account.lsu_amount).div(totalLSUs).toString();
+        accountsShare[account.account] = share;
+      });
+
+      let fundsDistribution: { address: string; amount: string }[] = [];
+
+      snapshotAccounts.forEach((snapshot) => {
+        const share = accountsShare[snapshot.account];
+        fundsDistribution.push({
+          address: snapshot.account,
+          amount: new Decimal(totalFundsUnitToDistribute).mul(share).toString(),
+        });
+      });
+
+      await this.pingFundManagerToDistributeFundsUnitsOperation(
+        fundsDistribution,
+        snapshot.date
+      );
+    }
   }
 }
