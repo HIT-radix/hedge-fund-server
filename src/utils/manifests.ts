@@ -60,6 +60,8 @@ export const get_finish_unstake_manifest = async (
 
   const accountAddress = addressResult.value;
 
+  const cleanClaimNftId = claimNftId.replace(/[{}]/g, "");
+
   return `
     CALL_METHOD
       Address("${accountAddress}")
@@ -70,7 +72,7 @@ export const get_finish_unstake_manifest = async (
     CALL_METHOD
       Address("${FUND_MANAGER_COMPONENT}")
       "finish_unstake"
-      "${claimNftId}"
+      "${cleanClaimNftId}"
       Map<Address, Tuple>(
           ${morpherData
             .map(
