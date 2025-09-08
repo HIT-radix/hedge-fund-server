@@ -10,6 +10,7 @@ import {
 import { bytesToHex } from "@noble/curves/utils";
 import { bls12_381 } from "@noble/curves/bls12-381";
 import { MORPHER_ORACLE_BACKEND_URL } from "@/constants/endpoints";
+import { MORPHER_ORACLE_NFT_ID } from "@/constants/address";
 
 // Helper function to convert message to string format for signing
 function morpherRequestMsgToString(msg: OracleRequestMessage): string {
@@ -63,7 +64,9 @@ export const fetchPriceDataFromOracle = async (
   const response = await fetch(oracleUrl);
 
   if (!response.ok) {
-    throw new Error(`Oracle API error: ${response.status}`);
+    throw new Error(
+      `Oracle API error: ${JSON.stringify(await response.json())}`
+    );
   }
 
   const priceData = (await response.json()) as MorpherPriceData;
@@ -72,12 +75,11 @@ export const fetchPriceDataFromOracle = async (
 
 export const getPriceDataFromMorpherOracle = async (
   marketId: string,
-  nftId: string,
   privateKey?: string
 ) => {
   const oracleRequest = generateMorpherOracleMessage(
     marketId,
-    nftId,
+    MORPHER_ORACLE_NFT_ID,
     privateKey
   );
   return await fetchPriceDataFromOracle(oracleRequest.oracleRequest);
