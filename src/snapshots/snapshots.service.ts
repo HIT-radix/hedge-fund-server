@@ -302,10 +302,11 @@ export class SnapshotsService {
         } else if (typeof daysAgo === "number" && !isNaN(daysAgo)) {
           cutoff = new Date();
           cutoff.setDate(cutoff.getDate() - daysAgo);
-        } else {
-          cutoff = new Date();
-          cutoff.setDate(cutoff.getDate() - 29);
         }
+        // else {
+        //   cutoff = new Date();
+        //   cutoff.setDate(cutoff.getDate() - 29);
+        // }
 
         where.date = LessThan(cutoff);
         this.logger.log(
@@ -696,7 +697,8 @@ export class SnapshotsService {
     console.log("==========", snapshot);
 
     const pingResult = await this.pingFundManagerToStartUnlockOperation(
-      availableLockedLSUs
+      "100"
+      // availableLockedLSUs
     );
 
     if (pingResult.success) {
@@ -710,13 +712,20 @@ export class SnapshotsService {
 
   async scheduledOperation_STEP_2() {
     const snapshots = await this.getSnapshotsFromDb({
-      daysAgo: 1,
+      daysAgo: 0,
       state: SnapshotState.UNLOCK_STARTED,
     });
 
     const snapshot = snapshots[0];
 
+    if (!snapshot) {
+      throw new Error("No snapshot found");
+    }
+
     const pingResult = await this.pingFundManagerToStartUnstakeOperation();
+    this.logger.log(
+      `Unstake transaction result: ${JSON.stringify(pingResult)}`
+    );
     // txid_tdx_2_19afjcckdk5dmxhruxslpw5d5t290t8jjjh7jn5edrvyhp8zqulkspzqk6z;
     if (pingResult.success) {
       console.log("==========", pingResult);
@@ -728,7 +737,7 @@ export class SnapshotsService {
         "LsuUnstakeStartedEvent"
       );
 
-      const claimNftId = eventKeyValues.claim_nft;
+      const claimNftId = eventKeyValues.claim_nft_id;
 
       console.log("======claimNftId", eventKeyValues);
 
@@ -749,16 +758,24 @@ export class SnapshotsService {
 
   async scheduledOperation_STEP_3() {
     const snapshots = await this.getSnapshotsFromDb({
-      daysAgo: 1,
+      daysAgo: 0,
       state: SnapshotState.UNSTAKE_STARTED,
     });
 
-    const snapshot = snapshots[0];
-    snapshot.date;
+    this.logger.log("snapshots found", snapshots.length);
 
-    const priceData = await getPriceDataFromMorpherOracle(
-      "GATEIO:XRD_USDT",
-      snapshot.claim_nft_id
+    const snapshot = snapshots[0];
+
+    if (!snapshot) {
+      throw new Error("No snapshot found");
+    }
+
+    this.logger.log(`Processing snapshot for date: ${snapshot.date}`);
+
+    const priceData = await getPriceDataFromMorpherOracle("GATEIO:XRD_USDT");
+
+    this.logger.log(
+      `Fetched price data from Morpher Oracle: ${JSON.stringify(priceData)}`
     );
 
     const pingResult = await this.pingFundManagerToFinishUnstakeOperation(
@@ -766,14 +783,24 @@ export class SnapshotsService {
       priceData
     );
 
+    this.logger.log(
+      `Finish unstake transaction result: ${JSON.stringify(pingResult)}`
+    );
+
     if (pingResult.success) {
-      console.log("==========", pingResult);
+      this.logger.log(
+        `Finish unstake transaction successful: ${JSON.stringify(pingResult)}`
+      );
       const txId = pingResult.txId;
 
       const eventKeyValues = await getEventKeyValuesFromTransaction(
         this.gatewayApi,
         txId,
         "LsuUnstakeCompletedEvent"
+      );
+
+      this.logger.log(
+        `LsuUnstakeCompletedEvent values: ${JSON.stringify(eventKeyValues)}`
       );
 
       const totalFundsUnitToDistribute =
@@ -787,14 +814,24 @@ export class SnapshotsService {
         false
       );
 
+      this.logger.log("snapshot saved as UNSTAKED");
+
       const snapshotAccounts = await this.getSnapshotAccounts({
         date: snapshot.date,
         fundSent: false,
       });
 
+      this.logger.log(
+        `Fetched ${snapshotAccounts.length} snapshot accounts needing fund distribution`
+      );
+
       const totalLSUs = snapshotAccounts.reduce(
         (acc, account) => new Decimal(acc).add(account.lsu_amount),
         new Decimal(0)
+      );
+
+      this.logger.log(
+        `Total LSU amount across accounts: ${totalLSUs.toString()}`
       );
 
       let accountsShare: Record<string, string> = {};
@@ -808,9 +845,13 @@ export class SnapshotsService {
 
       snapshotAccounts.forEach((snapshot) => {
         const share = accountsShare[snapshot.account];
+        const amount = new Decimal(totalFundsUnitToDistribute)
+          .mul(share)
+          .toDecimalPlaces(18, Decimal.ROUND_DOWN)
+          .toString();
         fundsDistribution.push({
           address: snapshot.account,
-          amount: new Decimal(totalFundsUnitToDistribute).mul(share).toString(),
+          amount,
         });
       });
 
@@ -818,6 +859,8 @@ export class SnapshotsService {
         fundsDistribution,
         snapshot.date
       );
+
+      return snapshotAccounts;
     }
   }
 }
