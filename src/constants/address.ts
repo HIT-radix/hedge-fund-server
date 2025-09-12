@@ -26,13 +26,18 @@ export const XRD_RESOURCE_ADDRESS =
 
 export const FUND_MANAGER_COMPONENT =
   process.env.ENVIRONMENT === "dev"
-    ? "component_tdx_2_1cqn24ymyzqst9zgf6cx2dzp0464nffmqdax272h9hzmj756fqfk503"
-    : "component_rdx1cqn24ymyzqst9zgf6cx2dzp0464nffmqdax272h9hzmj756fqfk503";
+    ? "component_tdx_2_1cpdhxgf8nmvzczs9ttvaf3307lq8m4wdky66rpn4zy5qdaat0av5sg"
+    : "component_tdx_2_1cpdhxgf8nmvzczs9ttvaf3307lq8m4wdky66rpn4zy5qdaat0av5sg";
 
 export const FUND_BOT_BADGE =
   process.env.ENVIRONMENT === "dev"
-    ? "resource_tdx_2_1thlu6g2lc0d0852lpce9qdaadvr709u58d8fr607vg8qku3ue0swe9"
-    : "resource_tdx_2_1thlu6g2lc0d0852lpce9qdaadvr709u58d8fr607vg8qku3ue0swe9";
+    ? "resource_tdx_2_1t40pyc05pfmsqvslxpnystfyxe654h856r049gfxc009cjrp6kluta"
+    : "resource_tdx_2_1t40pyc05pfmsqvslxpnystfyxe654h856r049gfxc009cjrp6kluta";
+
+export const FUND_UNIT_RESOURCE_ADDRESS =
+  process.env.ENVIRONMENT === "dev"
+    ? "resource_tdx_2_1t43fmc96wnkuugnn3x40f7fagtp4ks47mpzupceqx3k88w9w3gnxmj"
+    : "resource_tdx_2_1t43fmc96wnkuugnn3x40f7fagtp4ks47mpzupceqx3k88w9w3gnxmj";
 
 export const VALIDATOR_ADDRESS =
   process.env.ENVIRONMENT === "dev"
