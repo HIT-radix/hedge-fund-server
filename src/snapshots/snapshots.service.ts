@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, DataSource, LessThan, IsNull, In } from "typeorm";
 import { GatewayApiClient } from "@radixdlt/babylon-gateway-api-sdk";
+import { Cron } from "@nestjs/schedule";
 import { NftHolder } from "@/database/entities/nft-holder.entity";
 import { LedgerState } from "@/database/entities/ledger-state.entity";
 import { Snapshot } from "@/database/entities/snapshot.entity";
@@ -678,211 +679,275 @@ export class SnapshotsService {
     return successfulAddresses;
   }
 
+  /**
+   * Scheduled operation STEP 1 - Runs every 15 minutes
+   * Creates snapshot and starts unlock operation
+   */
+  @Cron("0 0,15,30,45 * * * *")
   async scheduledOperation_STEP_1() {
-    const date = new Date();
-    // Implementation for the scheduled start unlock operation
-    const node_info = await fetchValidatorInfo(
-      this.gatewayApi,
-      VALIDATOR_ADDRESS
-    );
-
-    this.logger.log("node info", node_info);
-
-    const availableLockedLSUs = new Decimal(2000).lessThanOrEqualTo(
-      node_info.currentlyEarnedLockedLSUs
-    )
-      ? "2000"
-      : node_info.currentlyEarnedLockedLSUs;
-
-    const snapshot = await this.createSnapshot(
-      date,
-      SnapshotState.UNLOCK_STARTED
-    );
-
-    this.logger.log("[STEP#1]:", snapshot);
-
-    const pingResult = await this.pingFundManagerToStartUnlockOperation(
-      availableLockedLSUs
-    );
-
-    if (pingResult.success) {
-      this.logger.log("[STEP#1]:", pingResult);
-      return pingResult;
-    } else {
-      this.logger.log("[STEP#1]: delete snapshot");
-      this.deleteSnapshot(snapshot.date, snapshot.claim_nft_id);
-    }
-  }
-
-  async scheduledOperation_STEP_2() {
-    const snapshots = await this.getSnapshotsFromDb({
-      daysAgo: 0,
-      state: SnapshotState.UNLOCK_STARTED,
-    });
-
-    const snapshot = snapshots[0];
-
-    if (!snapshot) {
-      throw new Error("No snapshot found");
-    }
-
-    const pingResult = await this.pingFundManagerToStartUnstakeOperation();
-    this.logger.log(
-      `Unstake transaction result: ${JSON.stringify(pingResult)}`
-    );
-    // txid_tdx_2_19afjcckdk5dmxhruxslpw5d5t290t8jjjh7jn5edrvyhp8zqulkspzqk6z;
-    if (pingResult.success) {
-      this.logger.log("[STEP#2]:", pingResult);
-      const txId = pingResult.txId;
-
-      const eventKeyValues = await getEventKeyValuesFromTransaction(
+    try {
+      this.logger.log("[CRON] Starting scheduledOperation_STEP_1");
+      const date = new Date();
+      // Implementation for the scheduled start unlock operation
+      const node_info = await fetchValidatorInfo(
         this.gatewayApi,
-        txId,
-        "LsuUnstakeStartedEvent"
+        VALIDATOR_ADDRESS
       );
 
-      const claimNftId = eventKeyValues.claim_nft_id;
+      this.logger.log("node info", node_info);
 
-      this.logger.log("[STEP#2] claimNftId:", eventKeyValues);
+      const availableLockedLSUs = new Decimal(200).lessThanOrEqualTo(
+        node_info.currentlyEarnedLockedLSUs
+      )
+        ? "200"
+        : node_info.currentlyEarnedLockedLSUs;
 
-      const updatedSnapshot = await this.saveSnapshot(
-        snapshot.date,
-        {},
-        SnapshotState.UNSTAKE_STARTED,
-        claimNftId,
-        false
-      );
-      return updatedSnapshot;
-    } else {
-      this.logger.log("[STEP#2]: delete snapshot");
-    }
-
-    return snapshots;
-  }
-
-  async scheduledOperation_STEP_3() {
-    const snapshots = await this.getSnapshotsFromDb({
-      daysAgo: 0,
-      state: SnapshotState.UNSTAKE_STARTED,
-    });
-
-    this.logger.log("snapshots found", snapshots.length);
-
-    const snapshot = snapshots[0];
-
-    if (!snapshot) {
-      throw new Error("No snapshot found");
-    }
-
-    this.logger.log(`Processing snapshot for date: ${snapshot.date}`);
-
-    const priceData = await getPriceDataFromMorpherOracle("GATEIO:XRD_USDT");
-
-    this.logger.log(
-      `Fetched price data from Morpher Oracle: ${JSON.stringify(priceData)}`
-    );
-
-    const pingResult = await this.pingFundManagerToFinishUnstakeOperation(
-      snapshot.claim_nft_id,
-      priceData
-    );
-
-    this.logger.log(
-      `Finish unstake transaction result: ${JSON.stringify(pingResult)}`
-    );
-
-    if (pingResult.success) {
-      this.logger.log(
-        `Finish unstake transaction successful: ${JSON.stringify(pingResult)}`
-      );
-      const txId = pingResult.txId;
-
-      const eventKeyValues = await getEventKeyValuesFromTransaction(
-        this.gatewayApi,
-        txId,
-        "LsuUnstakeCompletedEvent"
+      const snapshot = await this.createSnapshot(
+        date,
+        SnapshotState.UNLOCK_STARTED
       );
 
-      this.logger.log(
-        `LsuUnstakeCompletedEvent values: ${JSON.stringify(eventKeyValues)}`
+      this.logger.log("[STEP#1]:", snapshot);
+
+      const pingResult = await this.pingFundManagerToStartUnlockOperation(
+        availableLockedLSUs
       );
 
-      const totalFundsUnitToDistribute =
-        eventKeyValues.fund_units_to_distribute;
-
-      await this.saveSnapshot(
-        snapshot.date,
-        {},
-        SnapshotState.UNSTAKED,
-        null,
-        false
-      );
-
-      this.logger.log("snapshot saved as UNSTAKED");
-
-      const snapshotAccounts = await this.getSnapshotAccounts({
-        date: snapshot.date,
-        fundSent: false,
-      });
-
-      this.logger.log(
-        `Fetched ${snapshotAccounts.length} snapshot accounts needing fund distribution`
-      );
-
-      const totalLSUs = snapshotAccounts.reduce(
-        (acc, account) => new Decimal(acc).add(account.lsu_amount),
-        new Decimal(0)
-      );
-
-      this.logger.log(
-        `Total LSU amount across accounts: ${totalLSUs.toString()}`
-      );
-
-      let accountsShare: Record<string, string> = {};
-
-      snapshotAccounts.forEach((account) => {
-        const share = new Decimal(account.lsu_amount).div(totalLSUs).toString();
-        accountsShare[account.account] = share;
-      });
-
-      let fundsDistribution: { address: string; amount: string }[] = [];
-
-      snapshotAccounts.forEach((snapshot) => {
-        const share = accountsShare[snapshot.account];
-        const amount = new Decimal(totalFundsUnitToDistribute)
-          .mul(share)
-          .toDecimalPlaces(18, Decimal.ROUND_DOWN)
-          .toString();
-        fundsDistribution.push({
-          address: snapshot.account,
-          amount,
-        });
-      });
-
-      const successfullyDistributedAddresses =
-        await this.pingFundManagerToDistributeFundsUnitsOperation(
-          fundsDistribution,
-          snapshot.date
+      if (pingResult.success) {
+        this.logger.log("[STEP#1]:", pingResult);
+        this.logger.log(
+          "[CRON] scheduledOperation_STEP_1 completed successfully"
         );
-
-      if (
-        successfullyDistributedAddresses.length !== fundsDistribution.length
-      ) {
+        return pingResult;
+      } else {
+        this.logger.log("[STEP#1]: delete snapshot");
+        await this.deleteSnapshot(snapshot.date, snapshot.claim_nft_id);
         this.logger.warn(
-          `Not all funds were successfully distributed. Expected: ${fundsDistribution.length}, Actual: ${successfullyDistributedAddresses.length}`
+          "[CRON] scheduledOperation_STEP_1 failed, snapshot deleted"
         );
-        throw new Error("Not all funds were successfully distributed");
+      }
+    } catch (error) {
+      this.logger.error("[CRON] scheduledOperation_STEP_1 failed:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Scheduled operation STEP 2 - Runs 5 minutes after STEP 1 (5, 20, 35, 50 minutes)
+   * Starts unstake operation for existing snapshots
+   */
+  @Cron("0 5,20,35,50 * * * *")
+  async scheduledOperation_STEP_2() {
+    try {
+      this.logger.log("[CRON] Starting scheduledOperation_STEP_2");
+      const snapshots = await this.getSnapshotsFromDb({
+        daysAgo: 0,
+        state: SnapshotState.UNLOCK_STARTED,
+      });
+
+      const snapshot = snapshots[0];
+
+      if (!snapshot) {
+        this.logger.warn("[STEP#2] No snapshot found");
+        return null;
       }
 
-      await this.saveSnapshot(
-        snapshot.date,
-        {},
-        SnapshotState.DISTRIBUTED,
-        null,
-        false
+      const pingResult = await this.pingFundManagerToStartUnstakeOperation();
+      this.logger.log(
+        `[STEP#2] Unstake transaction result: ${JSON.stringify(pingResult)}`
+      );
+      // txid_tdx_2_19afjcckdk5dmxhruxslpw5d5t290t8jjjh7jn5edrvyhp8zqulkspzqk6z;
+      if (pingResult.success) {
+        this.logger.log("[STEP#2]:", pingResult);
+        const txId = pingResult.txId;
+
+        const eventKeyValues = await getEventKeyValuesFromTransaction(
+          this.gatewayApi,
+          txId,
+          "LsuUnstakeStartedEvent"
+        );
+
+        const claimNftId = eventKeyValues.claim_nft_id;
+
+        this.logger.log("[STEP#2] claimNftId:", eventKeyValues);
+
+        const updatedSnapshot = await this.saveSnapshot(
+          snapshot.date,
+          {},
+          SnapshotState.UNSTAKE_STARTED,
+          claimNftId,
+          false
+        );
+        this.logger.log(
+          "[CRON] scheduledOperation_STEP_2 completed successfully"
+        );
+        return updatedSnapshot;
+      } else {
+        this.logger.warn("[CRON] scheduledOperation_STEP_2 failed");
+      }
+
+      return snapshots;
+    } catch (error) {
+      this.logger.error("[CRON] scheduledOperation_STEP_2 failed:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Scheduled operation STEP 3 - Runs 3 minutes after STEP 2 (8, 23, 38, 53 minutes)
+   * Finishes unstake operation and distributes funds
+   */
+  @Cron("0 8,23,38,53 * * * *")
+  async scheduledOperation_STEP_3() {
+    try {
+      this.logger.log("[CRON] Starting scheduledOperation_STEP_3");
+      const snapshots = await this.getSnapshotsFromDb({
+        daysAgo: 0,
+        state: SnapshotState.UNSTAKE_STARTED,
+      });
+
+      this.logger.log("[STEP#3] snapshots found:", snapshots.length);
+
+      const snapshot = snapshots[0];
+
+      if (!snapshot) {
+        this.logger.warn("[STEP#3] No snapshot found");
+        return null;
+      }
+
+      this.logger.log(
+        `[STEP#3] Processing snapshot for date: ${snapshot.date}`
       );
 
-      return successfullyDistributedAddresses;
+      const priceData = await getPriceDataFromMorpherOracle("GATEIO:XRD_USDT");
+
+      this.logger.log(
+        `[STEP#3] Fetched price data from Morpher Oracle: ${JSON.stringify(
+          priceData
+        )}`
+      );
+
+      const pingResult = await this.pingFundManagerToFinishUnstakeOperation(
+        snapshot.claim_nft_id,
+        priceData
+      );
+
+      this.logger.log(
+        `[STEP#3] Finish unstake transaction result: ${JSON.stringify(
+          pingResult
+        )}`
+      );
+
+      if (pingResult.success) {
+        this.logger.log(
+          `[STEP#3] Finish unstake transaction successful: ${JSON.stringify(
+            pingResult
+          )}`
+        );
+        const txId = pingResult.txId;
+
+        const eventKeyValues = await getEventKeyValuesFromTransaction(
+          this.gatewayApi,
+          txId,
+          "LsuUnstakeCompletedEvent"
+        );
+
+        this.logger.log(
+          `[STEP#3] LsuUnstakeCompletedEvent values: ${JSON.stringify(
+            eventKeyValues
+          )}`
+        );
+
+        const totalFundsUnitToDistribute =
+          eventKeyValues.fund_units_to_distribute;
+
+        await this.saveSnapshot(
+          snapshot.date,
+          {},
+          SnapshotState.UNSTAKED,
+          null,
+          false
+        );
+
+        this.logger.log("[STEP#3] snapshot saved as UNSTAKED");
+
+        const snapshotAccounts = await this.getSnapshotAccounts({
+          date: snapshot.date,
+          fundSent: false,
+        });
+
+        this.logger.log(
+          `[STEP#3] Fetched ${snapshotAccounts.length} snapshot accounts needing fund distribution`
+        );
+
+        const totalLSUs = snapshotAccounts.reduce(
+          (acc, account) => new Decimal(acc).add(account.lsu_amount),
+          new Decimal(0)
+        );
+
+        this.logger.log(
+          `[STEP#3] Total LSU amount across accounts: ${totalLSUs.toString()}`
+        );
+
+        let accountsShare: Record<string, string> = {};
+
+        snapshotAccounts.forEach((account) => {
+          const share = new Decimal(account.lsu_amount)
+            .div(totalLSUs)
+            .toString();
+          accountsShare[account.account] = share;
+        });
+
+        let fundsDistribution: { address: string; amount: string }[] = [];
+
+        snapshotAccounts.forEach((snapshot) => {
+          const share = accountsShare[snapshot.account];
+          const amount = new Decimal(totalFundsUnitToDistribute)
+            .mul(share)
+            .toDecimalPlaces(18, Decimal.ROUND_DOWN)
+            .toString();
+          fundsDistribution.push({
+            address: snapshot.account,
+            amount,
+          });
+        });
+
+        const successfullyDistributedAddresses =
+          await this.pingFundManagerToDistributeFundsUnitsOperation(
+            fundsDistribution,
+            snapshot.date
+          );
+
+        if (
+          successfullyDistributedAddresses.length !== fundsDistribution.length
+        ) {
+          this.logger.warn(
+            `[STEP#3] Not all funds were successfully distributed. Expected: ${fundsDistribution.length}, Actual: ${successfullyDistributedAddresses.length}`
+          );
+          throw new Error(
+            "[STEP#3] Not all funds were successfully distributed"
+          );
+        }
+
+        await this.saveSnapshot(
+          snapshot.date,
+          {},
+          SnapshotState.DISTRIBUTED,
+          null,
+          false
+        );
+
+        this.logger.log(
+          "[CRON] scheduledOperation_STEP_3 completed successfully"
+        );
+        return successfullyDistributedAddresses;
+      } else {
+        this.logger.warn("[CRON] scheduledOperation_STEP_3 failed");
+        return null;
+      }
+    } catch (error) {
+      this.logger.error("[CRON] scheduledOperation_STEP_3 failed:", error);
+      throw error;
     }
   }
 }
