@@ -859,12 +859,30 @@ export class SnapshotsService {
         });
       });
 
-      await this.pingFundManagerToDistributeFundsUnitsOperation(
-        fundsDistribution,
-        snapshot.date
+      const successfullyDistributedAddresses =
+        await this.pingFundManagerToDistributeFundsUnitsOperation(
+          fundsDistribution,
+          snapshot.date
+        );
+
+      if (
+        successfullyDistributedAddresses.length !== fundsDistribution.length
+      ) {
+        this.logger.warn(
+          `Not all funds were successfully distributed. Expected: ${fundsDistribution.length}, Actual: ${successfullyDistributedAddresses.length}`
+        );
+        throw new Error("Not all funds were successfully distributed");
+      }
+
+      await this.saveSnapshot(
+        snapshot.date,
+        {},
+        SnapshotState.DISTRIBUTED,
+        null,
+        false
       );
 
-      return snapshotAccounts;
+      return successfullyDistributedAddresses;
     }
   }
 }
