@@ -688,7 +688,11 @@ export class SnapshotsService {
 
     this.logger.log("node info", node_info);
 
-    const availableLockedLSUs = node_info.currentlyEarnedLockedLSUs;
+    const availableLockedLSUs = new Decimal(2000).lessThanOrEqualTo(
+      node_info.currentlyEarnedLockedLSUs
+    )
+      ? "2000"
+      : node_info.currentlyEarnedLockedLSUs;
 
     const snapshot = await this.createSnapshot(
       date,
@@ -698,8 +702,7 @@ export class SnapshotsService {
     this.logger.log("[STEP#1]:", snapshot);
 
     const pingResult = await this.pingFundManagerToStartUnlockOperation(
-      "100"
-      // availableLockedLSUs
+      availableLockedLSUs
     );
 
     if (pingResult.success) {
