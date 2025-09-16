@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { ConfigModule } from "@nestjs/config";
+import { ScheduleModule } from "@nestjs/schedule";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { SnapshotsModule } from "./snapshots/snapshots.module";
@@ -8,6 +9,7 @@ import { SnapshotsModule } from "./snapshots/snapshots.module";
 @Module({
   imports: [
     ConfigModule.forRoot(),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
       type: "mysql",
       host: process.env.DB_HOST,
