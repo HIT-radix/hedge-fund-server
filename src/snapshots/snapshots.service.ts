@@ -686,7 +686,7 @@ export class SnapshotsService {
       VALIDATOR_ADDRESS
     );
 
-    console.log("-----------node info", node_info);
+    this.logger.log("node info", node_info);
 
     const availableLockedLSUs = node_info.currentlyEarnedLockedLSUs;
 
@@ -695,7 +695,7 @@ export class SnapshotsService {
       SnapshotState.UNLOCK_STARTED
     );
 
-    console.log("==========", snapshot);
+    this.logger.log("[STEP#1]:", snapshot);
 
     const pingResult = await this.pingFundManagerToStartUnlockOperation(
       "100"
@@ -703,10 +703,10 @@ export class SnapshotsService {
     );
 
     if (pingResult.success) {
-      console.log("==========", pingResult);
+      this.logger.log("[STEP#1]:", pingResult);
       return pingResult;
     } else {
-      console.log("========== delete snapshot");
+      this.logger.log("[STEP#1]: delete snapshot");
       this.deleteSnapshot(snapshot.date, snapshot.claim_nft_id);
     }
   }
@@ -729,7 +729,7 @@ export class SnapshotsService {
     );
     // txid_tdx_2_19afjcckdk5dmxhruxslpw5d5t290t8jjjh7jn5edrvyhp8zqulkspzqk6z;
     if (pingResult.success) {
-      console.log("==========", pingResult);
+      this.logger.log("[STEP#2]:", pingResult);
       const txId = pingResult.txId;
 
       const eventKeyValues = await getEventKeyValuesFromTransaction(
@@ -740,7 +740,7 @@ export class SnapshotsService {
 
       const claimNftId = eventKeyValues.claim_nft_id;
 
-      console.log("======claimNftId", eventKeyValues);
+      this.logger.log("[STEP#2] claimNftId:", eventKeyValues);
 
       const updatedSnapshot = await this.saveSnapshot(
         snapshot.date,
@@ -751,7 +751,7 @@ export class SnapshotsService {
       );
       return updatedSnapshot;
     } else {
-      console.log("========== delete snapshot");
+      this.logger.log("[STEP#2]: delete snapshot");
     }
 
     return snapshots;
