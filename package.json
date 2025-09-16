@@ -28,6 +28,7 @@
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.5",
     "@nestjs/platform-express": "^11.1.5",
+    "@nestjs/schedule": "^6.0.0",
     "@nestjs/typeorm": "^11.0.0",
     "@noble/curves": "^2.0.0",
     "@noble/ed25519": "^3.0.0",
