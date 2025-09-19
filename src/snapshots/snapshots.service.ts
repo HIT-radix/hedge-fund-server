@@ -821,11 +821,11 @@ export class SnapshotsService {
 
       this.logger.log("node info", node_info);
 
-      const availableLockedLSUs = new Decimal(200).lessThanOrEqualTo(
-        node_info.currentlyEarnedLockedLSUs
-      )
-        ? "200"
-        : node_info.currentlyEarnedLockedLSUs;
+      if (new Decimal(300).lessThan(node_info.currentlyEarnedLockedLSUs)) {
+        return "not enough locked LSUs to start unlock";
+      }
+
+      const availableLockedLSUs = "300"; //node_info.currentlyEarnedLockedLSUs;
 
       const snapshot = await this.createSnapshot(
         date,
