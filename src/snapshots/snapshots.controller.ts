@@ -352,4 +352,31 @@ CALL_METHOD
       );
     }
   }
+
+  // Reset stuck funds units in STEP 3
+  // NOTE: Remove or protect this endpoint before production use.
+  @Get("reset-stuck-funds")
+  async resetStuckFunds() {
+    try {
+      this.logger.log("Resetting stuck funds units in STEP 3...");
+
+      const result = await this.snapshotsService.resetStuckFundsUnitsIn_STEP3();
+
+      return {
+        success: true,
+        message: "Stuck funds units reset operation completed successfully",
+        data: result,
+        meta: {
+          timestamp: new Date().toISOString(),
+          description: "Reset stuck funds units distribution with empty array",
+        },
+      };
+    } catch (error) {
+      this.logger.error("Error resetting stuck funds units:", error);
+      throw new HttpException(
+        (error as Error).message || "Failed to reset stuck funds units",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
 }

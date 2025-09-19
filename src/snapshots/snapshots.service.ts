@@ -1110,4 +1110,12 @@ export class SnapshotsService {
       throw error;
     }
   }
+
+  async resetStuckFundsUnitsIn_STEP3() {
+    const manifest = await get_fund_units_distribution_manifest([], false);
+
+    const result = await executeTransactionManifest(manifest, 10);
+
+    return result;
+  }
 }
