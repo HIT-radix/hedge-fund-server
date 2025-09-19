@@ -17,6 +17,30 @@ export class SnapshotsController {
 
   constructor(private readonly snapshotsService: SnapshotsService) {}
 
+  @Get("health")
+  async healthCheck() {
+    try {
+      // Test DB connection with a simple query
+      await this.snapshotsService.testDbConnection();
+      return {
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        database: "connected",
+      };
+    } catch (error) {
+      this.logger.error("Health check failed:", error);
+      throw new HttpException(
+        {
+          status: "error",
+          database: "disconnected",
+          error: error.message,
+          timestamp: new Date().toISOString(),
+        },
+        HttpStatus.SERVICE_UNAVAILABLE
+      );
+    }
+  }
+
   @Get("create-snapshot")
   async createSnapshot() {
     try {
