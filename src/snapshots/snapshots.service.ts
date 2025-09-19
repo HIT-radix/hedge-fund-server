@@ -33,10 +33,24 @@ import {
 } from "@/utils/oracle";
 import { MorpherPriceData } from "@/interfaces/types.interface";
 
+// Tracks the last lifecycle state of the scheduled trigger pipeline
+enum LastTriggeringState {
+  STEP1_START = "STEP1_START",
+  STEP1_END = "STEP1_END",
+  STEP2_START = "STEP2_START",
+  STEP2_END = "STEP2_END",
+  STEP3_START = "STEP3_START",
+  STEP3_END = "STEP3_END",
+}
+
 @Injectable()
 export class SnapshotsService {
   private readonly logger = new Logger(SnapshotsService.name);
   private readonly gatewayApi: GatewayApiClient;
+  // Last triggering state across the 3-step scheduled pipeline.
+  // Initialized to STEP3_END so STEP 1 is allowed to start first.
+  private lastTriggeringState: LastTriggeringState =
+    LastTriggeringState.STEP3_END;
 
   constructor(
     @InjectRepository(NftHolder)
@@ -686,6 +700,16 @@ export class SnapshotsService {
   @Cron("0 0,15,30,45 * * * *")
   async scheduledOperation_STEP_1() {
     try {
+      // Gate: only run STEP 1 if previous state indicates STEP 3 ended
+      if (this.lastTriggeringState !== LastTriggeringState.STEP3_END) {
+        this.logger.warn(
+          `[CRON][STEP#1] Skipped: last state is ${this.lastTriggeringState}, expected ${LastTriggeringState.STEP3_END}`
+        );
+        return null;
+      }
+
+      const prevState = this.lastTriggeringState;
+      this.lastTriggeringState = LastTriggeringState.STEP1_START;
       this.logger.log("[CRON] Starting scheduledOperation_STEP_1");
       const date = new Date();
       // Implementation for the scheduled start unlock operation
@@ -718,6 +742,7 @@ export class SnapshotsService {
         this.logger.log(
           "[CRON] scheduledOperation_STEP_1 completed successfully"
         );
+        this.lastTriggeringState = LastTriggeringState.STEP1_END;
         return pingResult;
       } else {
         this.logger.log("[STEP#1]: delete snapshot");
@@ -725,9 +750,13 @@ export class SnapshotsService {
         this.logger.warn(
           "[CRON] scheduledOperation_STEP_1 failed, snapshot deleted"
         );
+        // Revert state so STEP 1 may retry on next tick
+        this.lastTriggeringState = prevState;
       }
     } catch (error) {
       this.logger.error("[CRON] scheduledOperation_STEP_1 failed:", error);
+      // Revert state on failure to allow retry
+      this.lastTriggeringState = LastTriggeringState.STEP3_END;
       throw error;
     }
   }
@@ -739,6 +768,16 @@ export class SnapshotsService {
   @Cron("0 5,20,35,50 * * * *")
   async scheduledOperation_STEP_2() {
     try {
+      // Gate: only run STEP 2 if STEP 1 has ended
+      if (this.lastTriggeringState !== LastTriggeringState.STEP1_END) {
+        this.logger.warn(
+          `[CRON][STEP#2] Skipped: last state is ${this.lastTriggeringState}, expected ${LastTriggeringState.STEP1_END}`
+        );
+        return null;
+      }
+
+      const prevState = this.lastTriggeringState;
+      this.lastTriggeringState = LastTriggeringState.STEP2_START;
       this.logger.log("[CRON] Starting scheduledOperation_STEP_2");
       const snapshots = await this.getSnapshotsFromDb({
         daysAgo: 0,
@@ -778,28 +817,43 @@ export class SnapshotsService {
           claimNftId,
           false
         );
+        this.lastTriggeringState = LastTriggeringState.STEP2_END;
         this.logger.log(
           "[CRON] scheduledOperation_STEP_2 completed successfully"
         );
         return updatedSnapshot;
       } else {
         this.logger.warn("[CRON] scheduledOperation_STEP_2 failed");
+        // Revert state so STEP 2 may retry on next tick
+        this.lastTriggeringState = prevState;
       }
 
       return snapshots;
     } catch (error) {
       this.logger.error("[CRON] scheduledOperation_STEP_2 failed:", error);
+      // Revert state on failure to allow retry
+      this.lastTriggeringState = LastTriggeringState.STEP1_END;
       throw error;
     }
   }
 
   /**
-   * Scheduled operation STEP 3 - Runs 3 minutes after STEP 2 (8, 23, 38, 53 minutes)
+   * Scheduled operation STEP 3 - Runs 5 minutes after STEP 2 (10, 25, 40, 55 minutes)
    * Finishes unstake operation and distributes funds
    */
-  @Cron("0 8,23,38,53 * * * *")
+  @Cron("0 10,25,40,55 * * * *")
   async scheduledOperation_STEP_3() {
     try {
+      // Gate: only run STEP 3 if STEP 2 has ended
+      if (this.lastTriggeringState !== LastTriggeringState.STEP2_END) {
+        this.logger.warn(
+          `[CRON][STEP#3] Skipped: last state is ${this.lastTriggeringState}, expected ${LastTriggeringState.STEP2_END}`
+        );
+        return null;
+      }
+
+      const prevState = this.lastTriggeringState;
+      this.lastTriggeringState = LastTriggeringState.STEP3_START;
       this.logger.log("[CRON] Starting scheduledOperation_STEP_3");
       const snapshots = await this.getSnapshotsFromDb({
         daysAgo: 0,
@@ -937,16 +991,21 @@ export class SnapshotsService {
           false
         );
 
+        this.lastTriggeringState = LastTriggeringState.STEP3_END;
         this.logger.log(
           "[CRON] scheduledOperation_STEP_3 completed successfully"
         );
         return successfullyDistributedAddresses;
       } else {
         this.logger.warn("[CRON] scheduledOperation_STEP_3 failed");
+        // Revert state so STEP 3 may retry on next tick
+        this.lastTriggeringState = prevState;
         return null;
       }
     } catch (error) {
       this.logger.error("[CRON] scheduledOperation_STEP_3 failed:", error);
+      // Revert state on failure to allow retry
+      this.lastTriggeringState = LastTriggeringState.STEP2_END;
       throw error;
     }
   }
