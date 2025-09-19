@@ -233,88 +233,90 @@ export class SnapshotsService {
     try {
       this.logger.log(`Saving snapshot for date: ${date.toISOString()}`);
 
-      return await this.dataSource.transaction(async (manager) => {
-        const snapshotRepo = manager.getRepository(Snapshot);
-        const snapshotAccountRepo = manager.getRepository(SnapshotAccount);
+      return await this.withDbRetry(async () => {
+        return await this.dataSource.transaction(async (manager) => {
+          const snapshotRepo = manager.getRepository(Snapshot);
+          const snapshotAccountRepo = manager.getRepository(SnapshotAccount);
 
-        // Check if snapshot already exists for this date
-        const existingSnapshot = await snapshotRepo.findOne({
-          where: { date },
-        });
-
-        let snapshot: Snapshot;
-
-        if (existingSnapshot) {
-          // Update existing snapshot
-          existingSnapshot.state = state;
-          existingSnapshot.date = date;
-          if (Boolean(claimNftId)) {
-            existingSnapshot.claim_nft_id = claimNftId;
-          }
-          snapshot = await snapshotRepo.save(existingSnapshot);
-          this.logger.log(
-            `Updated existing snapshot for date: ${date.toISOString()}`
-          );
-
-          // Remove existing snapshot accounts for this date only if updateAccounts is true
-          if (updateAccounts) {
-            await snapshotAccountRepo.delete({ date });
-            this.logger.log(
-              `Removed existing snapshot accounts for date: ${date.toISOString()}`
-            );
-          }
-        } else {
-          // Create new snapshot
-          snapshot = snapshotRepo.create({
-            date,
-            state,
-            claim_nft_id: claimNftId || null,
+          // Check if snapshot already exists for this date
+          const existingSnapshot = await snapshotRepo.findOne({
+            where: { date },
           });
-          snapshot = await snapshotRepo.save(snapshot);
-          this.logger.log(
-            `Created new snapshot for date: ${date.toISOString()}`
-          );
-        }
 
-        // Create snapshot account entries only if updateAccounts is true
-        if (updateAccounts) {
-          const snapshotAccounts: SnapshotAccount[] = [];
+          let snapshot: Snapshot;
 
-          for (const [accountAddress, lsuAmount] of Object.entries(
-            accountsData
-          )) {
+          if (existingSnapshot) {
+            // Update existing snapshot
+            existingSnapshot.state = state;
+            existingSnapshot.date = date;
+            if (Boolean(claimNftId)) {
+              existingSnapshot.claim_nft_id = claimNftId;
+            }
+            snapshot = await snapshotRepo.save(existingSnapshot);
             this.logger.log(
-              `Creating snapshot account for address: ${accountAddress}, LSU amount: ${lsuAmount}`
+              `Updated existing snapshot for date: ${date.toISOString()}`
             );
-            const snapshotAccount = snapshotAccountRepo.create({
+
+            // Remove existing snapshot accounts for this date only if updateAccounts is true
+            if (updateAccounts) {
+              await snapshotAccountRepo.delete({ date });
+              this.logger.log(
+                `Removed existing snapshot accounts for date: ${date.toISOString()}`
+              );
+            }
+          } else {
+            // Create new snapshot
+            snapshot = snapshotRepo.create({
               date,
-              account: accountAddress,
-              lsu_amount: lsuAmount,
-              fund_units_sent: false, // Default to false
-              snapshot,
+              state,
+              claim_nft_id: claimNftId || null,
             });
-            snapshotAccounts.push(snapshotAccount);
-          }
-
-          // Batch save all snapshot accounts
-          if (snapshotAccounts.length > 0) {
-            await snapshotAccountRepo.insert(snapshotAccounts);
+            snapshot = await snapshotRepo.save(snapshot);
             this.logger.log(
-              `Saved ${
-                snapshotAccounts.length
-              } snapshot accounts for date: ${date.toISOString()}`
+              `Created new snapshot for date: ${date.toISOString()}`
             );
           }
 
-          this.logger.log(
-            `Successfully saved snapshot with ${snapshotAccounts.length} accounts`
-          );
-        } else {
-          this.logger.log(
-            `Successfully saved snapshot without updating accounts`
-          );
-        }
-        return snapshot;
+          // Create snapshot account entries only if updateAccounts is true
+          if (updateAccounts) {
+            const snapshotAccounts: SnapshotAccount[] = [];
+
+            for (const [accountAddress, lsuAmount] of Object.entries(
+              accountsData
+            )) {
+              this.logger.log(
+                `Creating snapshot account for address: ${accountAddress}, LSU amount: ${lsuAmount}`
+              );
+              const snapshotAccount = snapshotAccountRepo.create({
+                date,
+                account: accountAddress,
+                lsu_amount: lsuAmount,
+                fund_units_sent: false, // Default to false
+                snapshot,
+              });
+              snapshotAccounts.push(snapshotAccount);
+            }
+
+            // Batch save all snapshot accounts
+            if (snapshotAccounts.length > 0) {
+              await snapshotAccountRepo.insert(snapshotAccounts);
+              this.logger.log(
+                `Saved ${
+                  snapshotAccounts.length
+                } snapshot accounts for date: ${date.toISOString()}`
+              );
+            }
+
+            this.logger.log(
+              `Successfully saved snapshot with ${snapshotAccounts.length} accounts`
+            );
+          } else {
+            this.logger.log(
+              `Successfully saved snapshot without updating accounts`
+            );
+          }
+          return snapshot;
+        });
       });
     } catch (error) {
       this.logger.error("Error saving snapshot:", error);
@@ -345,23 +347,25 @@ export class SnapshotsService {
         return null;
       }
 
-      // Save the snapshot with the LSU data
-      const snapshot = await this.saveSnapshot(
-        date,
-        lsuData.usersWithResourceAmount,
-        state,
-        claimNftId
-      );
-
-      if (snapshot) {
-        this.logger.log(
-          `Successfully created snapshot at ${date.toISOString()} with total LSU amount: ${
-            lsuData.totalAmount
-          }`
+      // Save the snapshot with the LSU data using the retry mechanism
+      return await this.withDbRetry(async () => {
+        const snapshot = await this.saveSnapshot(
+          date,
+          lsuData.usersWithResourceAmount,
+          state,
+          claimNftId
         );
-      }
 
-      return snapshot;
+        if (snapshot) {
+          this.logger.log(
+            `Successfully created snapshot at ${date.toISOString()} with total LSU amount: ${
+              lsuData.totalAmount
+            }`
+          );
+        }
+
+        return snapshot;
+      });
     } catch (error) {
       this.logger.error("Error creating snapshot at date:", error);
       throw error;
@@ -430,9 +434,11 @@ export class SnapshotsService {
         }
       }
 
-      const snapshots = await this.snapshotRepository.find({
-        where,
-        order: { date: "DESC" },
+      const snapshots = await this.withDbRetry(async () => {
+        return await this.snapshotRepository.find({
+          where,
+          order: { date: "DESC" },
+        });
       });
 
       this.logger.log(
@@ -529,9 +535,11 @@ export class SnapshotsService {
         }`
       );
 
-      const accounts = await this.snapshotAccountRepository.find({
-        where,
-        order: { date: "DESC" },
+      const accounts = await this.withDbRetry(async () => {
+        return await this.snapshotAccountRepository.find({
+          where,
+          order: { date: "DESC" },
+        });
       });
 
       this.logger.log(`Found ${accounts.length} snapshot accounts`);
@@ -563,69 +571,77 @@ export class SnapshotsService {
         }`
       );
 
-      return await this.dataSource.transaction(async (manager) => {
-        const snapshotRepo = manager.getRepository(Snapshot);
-        const snapshotAccountRepo = manager.getRepository(SnapshotAccount);
+      return await this.withDbRetry(async () => {
+        return await this.dataSource.transaction(async (manager) => {
+          const snapshotRepo = manager.getRepository(Snapshot);
+          const snapshotAccountRepo = manager.getRepository(SnapshotAccount);
 
-        // Build where clause for snapshot
-        const snapshotWhere: any = { date };
-        if (claimNftId !== undefined) {
-          snapshotWhere.claim_nft_id =
-            claimNftId === null ? IsNull() : claimNftId;
-        }
+          // Build where clause for snapshot
+          const snapshotWhere: any = { date };
+          if (claimNftId !== undefined) {
+            snapshotWhere.claim_nft_id =
+              claimNftId === null ? IsNull() : claimNftId;
+          }
 
-        // Check if snapshot exists
-        const existingSnapshot = await snapshotRepo.findOne({
-          where: snapshotWhere,
-        });
+          // Check if snapshot exists
+          const existingSnapshot = await snapshotRepo.findOne({
+            where: snapshotWhere,
+          });
 
-        if (!existingSnapshot) {
-          const message = `No snapshot found for date: ${date.toISOString()}${
+          if (!existingSnapshot) {
+            const message = `No snapshot found for date: ${date.toISOString()}${
+              claimNftId !== undefined
+                ? ` with claim_nft_id: ${claimNftId}`
+                : ""
+            }`;
+            this.logger.warn(message);
+            return {
+              success: false,
+              deletedAccountsCount: 0,
+              message,
+            };
+          }
+
+          // First, delete all related snapshot accounts
+          const deleteAccountsResult = await snapshotAccountRepo.delete({
+            date,
+          });
+          const deletedAccountsCount = deleteAccountsResult.affected || 0;
+
+          this.logger.log(
+            `Deleted ${deletedAccountsCount} snapshot accounts for date: ${date.toISOString()}`
+          );
+
+          // Then, delete the snapshot itself
+          const deleteSnapshotResult = await snapshotRepo.delete(snapshotWhere);
+          const deletedSnapshotsCount = deleteSnapshotResult.affected || 0;
+
+          if (deletedSnapshotsCount === 0) {
+            const message = `Failed to delete snapshot for date: ${date.toISOString()}${
+              claimNftId !== undefined
+                ? ` with claim_nft_id: ${claimNftId}`
+                : ""
+            }`;
+            this.logger.error(message);
+            return {
+              success: false,
+              deletedAccountsCount,
+              message,
+            };
+          }
+
+          const successMessage = `Successfully deleted snapshot for date: ${date.toISOString()}${
             claimNftId !== undefined ? ` with claim_nft_id: ${claimNftId}` : ""
-          }`;
-          this.logger.warn(message);
+          } and ${deletedAccountsCount} related snapshot accounts`;
+
+          this.logger.log(successMessage);
+
           return {
-            success: false,
-            deletedAccountsCount: 0,
-            message,
-          };
-        }
-
-        // First, delete all related snapshot accounts
-        const deleteAccountsResult = await snapshotAccountRepo.delete({ date });
-        const deletedAccountsCount = deleteAccountsResult.affected || 0;
-
-        this.logger.log(
-          `Deleted ${deletedAccountsCount} snapshot accounts for date: ${date.toISOString()}`
-        );
-
-        // Then, delete the snapshot itself
-        const deleteSnapshotResult = await snapshotRepo.delete(snapshotWhere);
-        const deletedSnapshotsCount = deleteSnapshotResult.affected || 0;
-
-        if (deletedSnapshotsCount === 0) {
-          const message = `Failed to delete snapshot for date: ${date.toISOString()}${
-            claimNftId !== undefined ? ` with claim_nft_id: ${claimNftId}` : ""
-          }`;
-          this.logger.error(message);
-          return {
-            success: false,
+            success: true,
             deletedAccountsCount,
-            message,
+            message: successMessage,
           };
-        }
-
-        const successMessage = `Successfully deleted snapshot for date: ${date.toISOString()}${
-          claimNftId !== undefined ? ` with claim_nft_id: ${claimNftId}` : ""
-        } and ${deletedAccountsCount} related snapshot accounts`;
-
-        this.logger.log(successMessage);
-
-        return {
-          success: true,
-          deletedAccountsCount,
-          message: successMessage,
-        };
+        });
       });
     } catch (error) {
       const errorMessage = `Error deleting snapshot for date: ${date.toISOString()}${
