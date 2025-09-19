@@ -4,7 +4,7 @@
   "description": "A simple NestJS hedge fund server",
   "main": "dist/main.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "start:dev": "nodemon",
     "start:debug": "nodemon --exec \"ts-node --inspect-brk -r tsconfig-paths/register src/main.ts\"",
