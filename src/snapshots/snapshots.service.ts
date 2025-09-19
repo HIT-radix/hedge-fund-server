@@ -139,6 +139,24 @@ export class SnapshotsService {
   }
 
   /**
+   * Simple method to test database connectivity
+   * @returns Promise<boolean> True if the database is connected
+   */
+  async testDbConnection(): Promise<boolean> {
+    try {
+      await this.withDbRetry(async () => {
+        await this.dataSource.query("SELECT 1 AS dbConnected");
+        this.logger.log("Database connection verified");
+        return true;
+      });
+      return true;
+    } catch (error) {
+      this.logger.error("Database connection test failed:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Get all holders of the Node LSU token
    * @returns Promise<Record<string, { address: string; amount: string }>> Object of holders with their LSU amounts
    */
