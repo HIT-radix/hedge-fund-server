@@ -697,7 +697,7 @@ export class SnapshotsService {
    * Scheduled operation STEP 1 - Runs every 15 minutes
    * Creates snapshot and starts unlock operation
    */
-  @Cron("0 0,15,30,45 * * * *")
+  // @Cron("0 0,15,30,45 * * * *")
   async scheduledOperation_STEP_1() {
     try {
       // Gate: only run STEP 1 if previous state indicates STEP 3 ended
@@ -765,7 +765,7 @@ export class SnapshotsService {
    * Scheduled operation STEP 2 - Runs 5 minutes after STEP 1 (5, 20, 35, 50 minutes)
    * Starts unstake operation for existing snapshots
    */
-  @Cron("0 5,20,35,50 * * * *")
+  // @Cron("0 5,20,35,50 * * * *")
   async scheduledOperation_STEP_2() {
     try {
       // Gate: only run STEP 2 if STEP 1 has ended
@@ -841,7 +841,7 @@ export class SnapshotsService {
    * Scheduled operation STEP 3 - Runs 5 minutes after STEP 2 (10, 25, 40, 55 minutes)
    * Finishes unstake operation and distributes funds
    */
-  @Cron("0 10,25,40,55 * * * *")
+  // @Cron("0 10,25,40,55 * * * *")
   async scheduledOperation_STEP_3() {
     try {
       // Gate: only run STEP 3 if STEP 2 has ended
