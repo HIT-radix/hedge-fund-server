@@ -14,7 +14,7 @@
     "mysql:status": "brew services list | grep mysql",
     "dev": "pnpm run start:dev",
     "dev:stop": "pnpm run mysql:stop",
-    "postinstall": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json"
+    "postinstall": "echo 'skip postinstall build"
   },
   "keywords": [
     "nestjs",
@@ -48,14 +48,14 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "tslog": "^4.9.3",
-    "typeorm": "^0.3.25"
+    "typeorm": "^0.3.25",
+    "tsc-alias": "^1.8.8"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
     "@types/node": "^24.1.0",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
-    "tsc-alias": "^1.8.8",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.2"
   }
