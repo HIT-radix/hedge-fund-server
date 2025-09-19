@@ -4,7 +4,7 @@
   "description": "A simple NestJS hedge fund server",
   "main": "dist/main.js",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "start": "node dist/main.js",
     "start:dev": "nodemon",
     "start:debug": "nodemon --exec \"ts-node --inspect-brk -r tsconfig-paths/register src/main.ts\"",
@@ -13,7 +13,8 @@
     "mysql:stop": "brew services stop mysql && echo '🛑 MySQL stopped'",
     "mysql:status": "brew services list | grep mysql",
     "dev": "pnpm run start:dev",
-    "dev:stop": "pnpm run mysql:stop"
+    "dev:stop": "pnpm run mysql:stop",
+    "postinstall": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json"
   },
   "keywords": [
     "nestjs",
@@ -54,6 +55,7 @@
     "@types/node": "^24.1.0",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.8",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.2"
   }
