@@ -7,6 +7,9 @@ import {
   Logger,
 } from "@nestjs/common";
 import { SnapshotsService } from "./snapshots.service";
+import { sendTransactionManifest } from "../wallet/helpers/send-tx-manifest";
+import { getPriceDataFromMorpherOracle } from "../utils/oracle";
+import { MORPHER_ORACLE_NFT_ID } from "@/constants/address";
 
 @Controller("snapshots")
 export class SnapshotsController {
@@ -17,7 +20,7 @@ export class SnapshotsController {
   @Get("create-snapshot")
   async createSnapshot() {
     try {
-      const snapshot = await this.snapshotsService.createSnapshot();
+      const snapshot = await this.snapshotsService.createSnapshot(new Date());
 
       if (!snapshot) {
         throw new HttpException(
@@ -149,6 +152,178 @@ export class SnapshotsController {
       if (error instanceof HttpException) throw error;
       throw new HttpException(
         "Failed to delete snapshot",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  // Test route for the scheduled start unlock operation
+  // NOTE: Remove or protect this endpoint before production use.
+  @Get("test-scheduled-step-1")
+  async testScheduledStep1() {
+    try {
+      this.logger.log("Testing scheduledStartUnlockOperation...");
+
+      const result = await this.snapshotsService.scheduledOperation_STEP_1();
+
+      return {
+        success: true,
+        message: "Scheduled start unlock operation completed successfully",
+        data: result,
+      };
+    } catch (error) {
+      this.logger.error("Error testing scheduledStartUnlockOperation:", error);
+      throw new HttpException(
+        (error as Error).message ||
+          "Failed to execute scheduled start unlock operation",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  // Test route for the scheduled operation step 2
+  // NOTE: Remove or protect this endpoint before production use.
+  @Get("test-scheduled-step-2")
+  async testScheduledStep2() {
+    try {
+      this.logger.log("Testing scheduledOperation_STEP_2...");
+
+      const result = await this.snapshotsService.scheduledOperation_STEP_2();
+
+      return {
+        success: true,
+        message: "Scheduled operation step 2 completed successfully",
+        data: result,
+        meta: {
+          snapshotsFound: result,
+          description:
+            "Fetches snapshots from 1 day ago with UNLOCK_STARTED state",
+        },
+      };
+    } catch (error) {
+      this.logger.error("Error testing scheduledOperation_STEP_2:", error);
+      throw new HttpException(
+        (error as Error).message ||
+          "Failed to execute scheduled operation step 2",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Get("test-scheduled-step-3")
+  async testScheduledStep3() {
+    try {
+      this.logger.log("Testing scheduledOperation_STEP_3...");
+
+      const result = await this.snapshotsService.scheduledOperation_STEP_3();
+
+      return {
+        success: true,
+        message: "Scheduled operation step 3 completed successfully",
+        data: result,
+      };
+    } catch (error) {
+      this.logger.error("Error testing scheduledOperation_STEP_3:", error);
+      throw new HttpException(
+        (error as Error).message ||
+          "Failed to execute scheduled operation step 3",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  // Temporary test route to send a hardcoded transaction manifest through the TS wallet
+  // NOTE: Remove or protect this endpoint before production use.
+  @Get("test-send-tx")
+  async testSendTx() {
+    const manifest = `CALL_METHOD
+    Address("account_tdx_2_129y9wu3vugaeasnprxjlrqy3tpmr7hpurrmapmyqhsr26ehhrh22e2")
+    "withdraw"
+    Address("resource_tdx_2_1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxtfd2jc")
+    Decimal("17")
+;
+TAKE_FROM_WORKTOP
+    Address("resource_tdx_2_1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxtfd2jc")
+    Decimal("17")
+    Bucket("bucket1")
+;
+CALL_METHOD
+    Address("account_tdx_2_1297g0fef53k3vvr0faz9dadz24pfppedqgygeu2p7m7a55pmpk4e3v")
+    "try_deposit_or_abort"
+    Bucket("bucket1")
+    Enum<0u8>()
+;`;
+
+    try {
+      const abc = await sendTransactionManifest(manifest, 10).match(
+        (txId) => ({ success: true, txId }),
+        (error) => {
+          throw new HttpException(
+            (error as any)?.message || "Transaction failed",
+            HttpStatus.BAD_REQUEST
+          );
+        }
+      );
+      return abc;
+    } catch (error) {
+      throw new HttpException(
+        (error as Error).message || "Failed to send transaction",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  // Test route for the getPriceDataFromMorpherOracle function
+  // NOTE: Remove or protect this endpoint before production use.
+  @Get("test-oracle-price")
+  async testOraclePrice() {
+    try {
+      // Use default values if not provided
+      const testMarketId = "GATEIO:XRD_USDT";
+      const testNftId = MORPHER_ORACLE_NFT_ID;
+
+      this.logger.log(
+        `Testing oracle price data for market: ${testMarketId}, NFT: ${testNftId}`
+      );
+
+      const priceData = await getPriceDataFromMorpherOracle(
+        testMarketId,
+        testNftId
+      );
+
+      return priceData;
+    } catch (error) {
+      this.logger.error("Error testing oracle price data:", error);
+      throw new HttpException(
+        (error as Error).message || "Failed to retrieve oracle price data",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  // Test route for the testFetchValidatorInfo function
+  // NOTE: Remove or protect this endpoint before production use.
+  @Get("fetch-node-info")
+  async testFetchValidatorInfo() {
+    try {
+      this.logger.log("Testing fetchValidatorInfo...");
+
+      const validatorInfo =
+        await this.snapshotsService.testFetchValidatorInfo();
+
+      return {
+        success: true,
+        message: "Validator info retrieved successfully",
+        data: validatorInfo,
+        meta: {
+          timestamp: new Date().toISOString(),
+          description: "Validator information from the Radix network",
+        },
+      };
+    } catch (error) {
+      this.logger.error("Error testing fetchValidatorInfo:", error);
+      throw new HttpException(
+        (error as Error).message || "Failed to retrieve validator info",
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
