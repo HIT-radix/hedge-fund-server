@@ -72,6 +72,73 @@ export class SnapshotsService {
   }
 
   /**
+   * Execute a database operation with connection retry logic
+   * @param operation Function that performs the database operation
+   * @param maxRetries Maximum number of retry attempts
+   * @returns Result of the operation
+   */
+  private async withDbRetry<T>(
+    operation: () => Promise<T>,
+    maxRetries = 3
+  ): Promise<T> {
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Check connection health on retries
+        if (attempt > 1) {
+          this.logger.log(
+            `DB operation retry attempt ${attempt}/${maxRetries}`
+          );
+
+          try {
+            // Verify connection with simple query
+            await this.dataSource.query("SELECT 1");
+            this.logger.log("Database connection verified");
+          } catch (pingError) {
+            this.logger.warn(
+              "Database connection check failed, reconnecting:",
+              pingError
+            );
+
+            // Force reconnection if needed
+            if (!this.dataSource.isInitialized) {
+              await this.dataSource.initialize();
+              this.logger.log("Database connection reinitialized");
+            } else {
+              // Try to get a fresh connection from the pool
+              const queryRunner = this.dataSource.createQueryRunner();
+              await queryRunner.connect();
+              await queryRunner.release();
+              this.logger.log("Database connection refreshed");
+            }
+          }
+        }
+
+        return await operation();
+      } catch (error) {
+        lastError = error;
+        this.logger.warn(
+          `DB operation failed (attempt ${attempt}/${maxRetries}):`,
+          error
+        );
+
+        if (attempt < maxRetries) {
+          // Exponential backoff with max 3 second delay
+          const delay = Math.min(100 * Math.pow(2, attempt), 3000);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    this.logger.error(
+      `DB operation failed after ${maxRetries} attempts:`,
+      lastError
+    );
+    throw lastError;
+  }
+
+  /**
    * Get all holders of the Node LSU token
    * @returns Promise<Record<string, { address: string; amount: string }>> Object of holders with their LSU amounts
    */
