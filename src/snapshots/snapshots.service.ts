@@ -1060,7 +1060,7 @@ export class SnapshotsService {
           const amount = new Decimal(totalFundsUnitToDistribute)
             .mul(share)
             .toDecimalPlaces(18, Decimal.ROUND_DOWN)
-            .toString();
+            .toFixed(18);
           fundsDistribution.push({
             address: snapshot.account,
             amount,
