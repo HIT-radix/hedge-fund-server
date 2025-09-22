@@ -197,7 +197,7 @@ export const TypescriptWalletClient = ({
   const submitTransaction = (transactionManifest: TransactionManifest) => {
     convertParsedManifest(transactionManifest).map((data) => {
       logger.debug(`Submitting transaction`);
-      logger.debug(data.instructions.value);
+      // logger.debug(data.instructions.value);
     });
 
     return buildTransaction(transactionManifest)
