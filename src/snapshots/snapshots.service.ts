@@ -284,9 +284,9 @@ export class SnapshotsService {
             for (const [accountAddress, lsuAmount] of Object.entries(
               accountsData
             )) {
-              this.logger.log(
-                `Creating snapshot account for address: ${accountAddress}, LSU amount: ${lsuAmount}`
-              );
+              // this.logger.log(
+              //   `Creating snapshot account for address: ${accountAddress}, LSU amount: ${lsuAmount}`
+              // );
               const snapshotAccount = snapshotAccountRepo.create({
                 date,
                 account: accountAddress,
@@ -819,7 +819,7 @@ export class SnapshotsService {
         VALIDATOR_ADDRESS
       );
 
-      this.logger.log("node info", node_info);
+      // this.logger.log("node info", node_info);
 
       if (new Decimal(300).greaterThan(node_info.currentlyEarnedLockedLSUs)) {
         return "not enough locked LSUs to start unlock";
@@ -832,7 +832,7 @@ export class SnapshotsService {
         SnapshotState.UNLOCK_STARTED
       );
 
-      this.logger.log("[STEP#1]:", snapshot);
+      // this.logger.log("[STEP#1]:", snapshot);
 
       const pingResult = await this.pingFundManagerToStartUnlockOperation(
         availableLockedLSUs
