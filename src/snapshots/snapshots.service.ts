@@ -777,7 +777,6 @@ export class SnapshotsService {
             batchAddresses.length
           } addresses to successful list.`
         );
-        return successfulAddresses;
       } catch (error) {
         this.logger.error(
           `Error executing batch ${i + 1}/${totalBatches}:`,
