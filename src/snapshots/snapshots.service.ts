@@ -925,8 +925,6 @@ export class SnapshotsService {
         return updatedSnapshot;
       } else {
         this.logger.warn("[CRON] scheduledOperation_STEP_2 failed");
-        // Revert state so STEP 2 may retry on next tick
-        this.lastTriggeringState = prevState;
       }
 
       return snapshots;
@@ -1099,8 +1097,6 @@ export class SnapshotsService {
         return successfullyDistributedAddresses;
       } else {
         this.logger.warn("[CRON] scheduledOperation_STEP_3 failed");
-        // Revert state so STEP 3 may retry on next tick
-        this.lastTriggeringState = prevState;
         return null;
       }
     } catch (error) {
