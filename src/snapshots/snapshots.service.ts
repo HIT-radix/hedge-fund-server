@@ -32,6 +32,7 @@ import {
   priceMsgToMorpherString,
 } from "@/utils/oracle";
 import { MorpherPriceData } from "@/interfaces/types.interface";
+import { HIT_SERVER_URL } from "@/constants/endpoints";
 
 // Tracks the last lifecycle state of the scheduled trigger pipeline
 enum LastTriggeringState {
@@ -1111,5 +1112,31 @@ export class SnapshotsService {
     const result = await executeTransactionManifest(manifest, 10);
 
     return result;
+  }
+
+  async pingErrorToTg(message: string): Promise<boolean | null> {
+    try {
+      const url = `${HIT_SERVER_URL}/emit-stake-message`;
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+
+      if (!res.ok) {
+        const body = await res.text();
+        this.logger.warn(
+          `pingErrorToTg failed with status ${res.status}: ${body}`
+        );
+        return null;
+      }
+
+      this.logger.log("pingErrorToTg message sent successfully");
+      return true;
+    } catch (error) {
+      this.logger.error("pingErrorToTg error:", error);
+      return null;
+    }
   }
 }
