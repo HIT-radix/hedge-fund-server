@@ -950,7 +950,6 @@ export class SnapshotsService {
         return null;
       }
 
-      const prevState = this.lastTriggeringState;
       this.lastTriggeringState = LastTriggeringState.STEP3_START;
       this.logger.log("[CRON] Starting scheduledOperation_STEP_3");
       const snapshots = await this.getSnapshotsFromDb({
