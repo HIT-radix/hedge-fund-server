@@ -851,13 +851,15 @@ export class SnapshotsService {
         this.logger.warn(
           "[CRON] scheduledOperation_STEP_1 failed, snapshot deleted"
         );
-        // Revert state so STEP 1 may retry on next tick
-        this.lastTriggeringState = prevState;
+        await this.pingErrorToTg(
+          `[CRON] scheduledOperation_STEP_1 failed, snapshot deleted`
+        );
       }
     } catch (error) {
       this.logger.error("[CRON] scheduledOperation_STEP_1 failed:", error);
-      // Revert state on failure to allow retry
-      this.lastTriggeringState = LastTriggeringState.STEP3_END;
+      await this.pingErrorToTg(
+        `[CRON] scheduledOperation_STEP_1 failed: ${error.message || error}`
+      );
       throw error;
     }
   }
@@ -877,7 +879,6 @@ export class SnapshotsService {
         return null;
       }
 
-      const prevState = this.lastTriggeringState;
       this.lastTriggeringState = LastTriggeringState.STEP2_START;
       this.logger.log("[CRON] Starting scheduledOperation_STEP_2");
       const snapshots = await this.getSnapshotsFromDb({
@@ -930,8 +931,9 @@ export class SnapshotsService {
       return snapshots;
     } catch (error) {
       this.logger.error("[CRON] scheduledOperation_STEP_2 failed:", error);
-      // Revert state on failure to allow retry
-      this.lastTriggeringState = LastTriggeringState.STEP1_END;
+      await this.pingErrorToTg(
+        `[CRON] scheduledOperation_STEP_2 failed: ${error.message || error}`
+      );
       throw error;
     }
   }
@@ -964,7 +966,7 @@ export class SnapshotsService {
 
       if (!snapshot) {
         this.logger.warn("[STEP#3] No snapshot found");
-        return null;
+        throw new Error("[STEP#3] No snapshot found");
       }
 
       this.logger.log(
@@ -1095,13 +1097,14 @@ export class SnapshotsService {
         );
         return successfullyDistributedAddresses;
       } else {
-        this.logger.warn("[CRON] scheduledOperation_STEP_3 failed");
-        return null;
+        this.logger.warn("[STEP#3] Finish unstake operation failed");
+        throw new Error("[STEP#3] Finish unstake operation failed");
       }
     } catch (error) {
       this.logger.error("[CRON] scheduledOperation_STEP_3 failed:", error);
-      // Revert state on failure to allow retry
-      this.lastTriggeringState = LastTriggeringState.STEP2_END;
+      await this.pingErrorToTg(
+        `[CRON] scheduledOperation_STEP_3 failed: ${error.message || error}`
+      );
       throw error;
     }
   }
