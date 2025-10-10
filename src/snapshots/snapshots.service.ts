@@ -809,7 +809,6 @@ export class SnapshotsService {
         return null;
       }
 
-      const prevState = this.lastTriggeringState;
       this.lastTriggeringState = LastTriggeringState.STEP1_START;
       this.logger.log("[CRON] Starting scheduledOperation_STEP_1");
       const date = new Date();
@@ -897,7 +896,7 @@ export class SnapshotsService {
       this.logger.log(
         `[STEP#2] Unstake transaction result: ${JSON.stringify(pingResult)}`
       );
-      // txid_tdx_2_19afjcckdk5dmxhruxslpw5d5t290t8jjjh7jn5edrvyhp8zqulkspzqk6z;
+
       if (pingResult.success) {
         this.logger.log("[STEP#2]:", pingResult);
         const txId = pingResult.txId;
