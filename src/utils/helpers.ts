@@ -76,14 +76,33 @@ export const executeTransactionManifest = async (
   manifest: string,
   lockFee: number = 10
 ): Promise<{ success: boolean; txId?: string; error?: string }> => {
+  // First attempt
+  const first = await attemptToSendTxOnChain(manifest, lockFee);
+  if (first.success) return first;
+
+  // Retry once after a short backoff
+  await new Promise((r) => setTimeout(r, 500));
+  const second = await attemptToSendTxOnChain(manifest, lockFee);
+  return second;
+};
+
+const attemptToSendTxOnChain = async (
+  manifest: string,
+  lockFee: number = 10
+): Promise<{
+  success: boolean;
+  txId?: string;
+  error?: string;
+}> => {
   try {
-    return await sendTransactionManifest(manifest, lockFee).match(
+    const result = await sendTransactionManifest(manifest, lockFee).match(
       (txId) => ({ success: true, txId }),
       (error) => ({
         success: false,
         error: (error as Error).message || "Failed to send transaction",
       })
     );
+    return result;
   } catch (error) {
     return {
       success: false,
