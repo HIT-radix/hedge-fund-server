@@ -730,7 +730,7 @@ export class SnapshotsService {
             `Failed to execute batch ${i + 1}/${totalBatches}:`,
             result.error
           );
-          throw new Error(`Batch ${i + 1} failed: ${result.error}`);
+          throw new Error(`Batch ${i + 1} failed: ${result.txId || ""}`);
         }
 
         // Add successful addresses from this batch
@@ -851,7 +851,9 @@ export class SnapshotsService {
           "[CRON] scheduledOperation_STEP_1 failed, snapshot deleted"
         );
         await this.pingErrorToTg(
-          `[CRON] scheduledOperation_STEP_1 failed, snapshot deleted`
+          `[CRON] scheduledOperation_STEP_1 failed, snapshot deleted ${
+            pingResult.txId || ""
+          }`
         );
       }
     } catch (error) {
@@ -925,9 +927,8 @@ export class SnapshotsService {
         return updatedSnapshot;
       } else {
         this.logger.warn("[CRON] scheduledOperation_STEP_2 failed");
+        throw new Error(pingResult.txId || "");
       }
-
-      return snapshots;
     } catch (error) {
       this.logger.error("[CRON] scheduledOperation_STEP_2 failed:", error);
       await this.pingErrorToTg(
@@ -1097,7 +1098,7 @@ export class SnapshotsService {
         return successfullyDistributedAddresses;
       } else {
         this.logger.warn("[STEP#3] Finish unstake operation failed");
-        throw new Error("[STEP#3] Finish unstake operation failed");
+        throw new Error(pingResult.txId || "");
       }
     } catch (error) {
       this.logger.error("[CRON] scheduledOperation_STEP_3 failed:", error);
