@@ -97,16 +97,23 @@ const attemptToSendTxOnChain = async (
   try {
     const result = await sendTransactionManifest(manifest, lockFee).match(
       (txId) => ({ success: true, txId }),
-      (error) => ({
-        success: false,
-        error: (error as Error).message || "Failed to send transaction",
-      })
+      (error) => {
+        const e = error as any;
+        // Try to surface txId if available (attached earlier in sendTransactionManifest)
+        const txId = e?.txId || e?.txid;
+        return {
+          success: false,
+          error: (e as Error).message || "Failed to send transaction",
+          txId,
+        } as { success: false; error: string; txId?: string };
+      }
     );
     return result;
   } catch (error) {
     return {
       success: false,
       error: (error as Error).message || "Failed to send transaction",
+      txId: (error as any)?.txId || (error as any)?.txid,
     };
   }
 };
