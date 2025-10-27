@@ -821,6 +821,8 @@ export class SnapshotsService {
       // this.logger.log("node info", node_info);
 
       if (new Decimal(300).greaterThan(node_info.currentlyEarnedLockedLSUs)) {
+        this.logger.log("not enough locked LSUs to start unlock");
+        this.lastTriggeringState = LastTriggeringState.STEP3_END;
         return "not enough locked LSUs to start unlock";
       }
 
