@@ -5,6 +5,7 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { SnapshotsModule } from "./snapshots/snapshots.module";
+import { AirdropsModule } from "./airdrops/airdrops.module";
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { SnapshotsModule } from "./snapshots/snapshots.module";
       retryDelay: 3000, // 3 seconds between retries
     }),
     SnapshotsModule,
+    AirdropsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
