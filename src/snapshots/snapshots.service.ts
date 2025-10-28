@@ -11,11 +11,11 @@ import { SnapshotState } from "@/interfaces/enum";
 import { RADIX_CONFIG } from "@/config/radix.config";
 import {
   DAPP_DEFINITION_ADDRESS,
-  HIT_FOMO_NODE_LSU_ADDRESS,
   VALIDATOR_ADDRESS,
   XRD_RESOURCE_ADDRESS,
 } from "@/constants/address";
 import Decimal from "decimal.js";
+import { LsuHolderService } from "@/common/services/lsu-holder.service";
 import { executeTransactionManifest } from "@/utils/helpers";
 import {
   get_finish_unstake_manifest,
@@ -62,7 +62,8 @@ export class SnapshotsService {
     private snapshotRepository: Repository<Snapshot>,
     @InjectRepository(SnapshotAccount)
     private snapshotAccountRepository: Repository<SnapshotAccount>,
-    private dataSource: DataSource
+    private dataSource: DataSource,
+    private readonly lsuHolderService: LsuHolderService
   ) {
     this.gatewayApi = GatewayApiClient.initialize({
       networkId: RADIX_CONFIG.NETWORK_ID,
@@ -153,64 +154,6 @@ export class SnapshotsService {
       return true;
     } catch (error) {
       this.logger.error("Database connection test failed:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get all holders of the Node LSU token
-   * @returns Promise<Record<string, { address: string; amount: string }>> Object of holders with their LSU amounts
-   */
-  async getNodeLSUholder() {
-    try {
-      this.logger.log(
-        `Fetching all holders of Node LSU token: ${HIT_FOMO_NODE_LSU_ADDRESS}`
-      );
-
-      const holders: Record<string, string> = {};
-      let nextCursor: string | undefined = undefined;
-      let totalProcessed = 0;
-      let totalAmount = "0";
-
-      do {
-        const response =
-          await this.gatewayApi.extensions.innerClient.resourceHoldersPage({
-            resourceHoldersRequest: {
-              resource_address: HIT_FOMO_NODE_LSU_ADDRESS,
-              limit_per_page: 1000,
-              cursor: nextCursor,
-            },
-          });
-
-        // Process items from the current page
-        for (const item of response.items) {
-          if (
-            item.type === "FungibleResource" &&
-            item.holder_address.startsWith("account")
-          ) {
-            holders[item.holder_address] = item.amount;
-            totalAmount = new Decimal(totalAmount).add(item.amount).toString();
-          }
-        }
-
-        // Update for next iteration
-        totalProcessed += response.items.length;
-        nextCursor = response.next_cursor;
-
-        this.logger.log(
-          `Processed ${totalProcessed}/${response.total_count} Node LSU holders`
-        );
-      } while (nextCursor);
-
-      this.logger.log(
-        `Found ${Object.keys(holders).length} Node LSU holders in total`
-      );
-      return {
-        usersWithResourceAmount: holders,
-        totalAmount,
-      };
-    } catch (error) {
-      this.logger.error("Error fetching Node LSU holders:", error);
       throw error;
     }
   }
@@ -341,7 +284,7 @@ export class SnapshotsService {
       this.logger.log(`Creating snapshot at date: ${date.toISOString()}`);
 
       // Get LSU amounts for the specified date
-      const lsuData = await this.getNodeLSUholder();
+      const lsuData = await this.lsuHolderService.getNodeLSUholder();
 
       if (!lsuData) {
         this.logger.warn(`No LSU data found for date: ${date.toISOString()}`);
