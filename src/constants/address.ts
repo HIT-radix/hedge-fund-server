@@ -53,3 +53,8 @@ export const MORPHER_ORACLE_NFT_ID =
   process.env.ENVIRONMENT === "dev"
     ? "{cfd5d86c9d43b11e-78622846f264c0a0-e5256cd3fdb3a1e4-1e648e9bb24ca5de}"
     : "{cfd5d86c9d43b11e-78622846f264c0a0-e5256cd3fdb3a1e4-1e648e9bb24ca5de}";
+
+export const ACCOUNT_LOCKER_ADDRESS =
+  process.env.ENVIRONMENT === "dev"
+    ? "locker_tdx_2_1dq0rslnp945vc3p75lxgvnd8ph2qfr43am3srus8q352572ckpdl4w"
+    : "locker_tdx_2_1dq0rslnp945vc3p75lxgvnd8ph2qfr43am3srus8q352572ckpdl4w";
