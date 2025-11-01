@@ -3,6 +3,7 @@ import Decimal from "decimal.js";
 import { get_buyback_airdrop_manifest } from "@/utils/manifests";
 import { executeTransactionManifest } from "@/utils/helpers";
 import { LsuHolderService } from "@/common/services/lsu-holder.service";
+import { BuyBackAirdropResult } from "@/interfaces/types.interface";
 
 @Injectable()
 export class AirdropsService {
@@ -10,17 +11,7 @@ export class AirdropsService {
 
   constructor(private readonly lsuHolderService: LsuHolderService) {}
 
-  async airdropTheBuyBack(
-    tokens: { tokenAddress: string; amount: string }[]
-  ): Promise<
-    {
-      tokenAddress: string;
-      totalAccounts: number;
-      chunkCount: number;
-      transactionIds: string[];
-      accounts: string[];
-    }[]
-  > {
+  async airdropTheBuyBack(tokens: { tokenAddress: string; amount: string }[]) {
     if (!Array.isArray(tokens) || tokens.length === 0) {
       throw new Error("Tokens payload must be a non-empty array");
     }
@@ -41,13 +32,7 @@ export class AirdropsService {
       throw new Error("Total LSU amount must be greater than zero");
     }
 
-    const results: {
-      tokenAddress: string;
-      totalAccounts: number;
-      chunkCount: number;
-      transactionIds: string[];
-      accounts: string[];
-    }[] = [];
+    const results: BuyBackAirdropResult = [];
 
     for (const token of tokens) {
       if (!token?.tokenAddress || !token?.amount) {
@@ -92,6 +77,7 @@ export class AirdropsService {
       const chunks = this.chunkArray(airdropData, 80);
       const successfulAccounts: string[] = [];
       const txIds: string[] = [];
+      const failedAirdrops: { address: string; amount: string }[] = [];
 
       this.logger.log(
         `Airdropping ${token.amount} of ${token.tokenAddress} to ${airdropData.length} accounts across ${chunks.length} transactions`
@@ -107,13 +93,19 @@ export class AirdropsService {
         const result = await executeTransactionManifest(manifest, 10);
 
         if (!result.success || !result.txId) {
-          throw new Error(
+          const failureReason = result.error || "Unknown error";
+
+          for (let j = i; j < chunks.length; j++) {
+            failedAirdrops.push(...chunks[j]);
+          }
+
+          this.logger.error(
             `Failed to execute airdrop transaction for ${
               token.tokenAddress
-            } (chunk ${i + 1}/${chunks.length}): ${
-              result.error || "Unknown error"
-            }`
+            } (chunk ${i + 1}/${chunks.length}): ${failureReason}`
           );
+
+          break;
         }
 
         txIds.push(result.txId);
@@ -126,6 +118,7 @@ export class AirdropsService {
         chunkCount: chunks.length,
         transactionIds: txIds,
         accounts: successfulAccounts,
+        failedAirdrops,
       });
     }
 
