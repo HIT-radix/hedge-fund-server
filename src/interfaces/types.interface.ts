@@ -37,3 +37,12 @@ export type MorpherPriceData = {
   }[];
   signature: string;
 };
+
+export type BuyBackAirdropResult = {
+  tokenAddress: string;
+  totalAccounts: number;
+  chunkCount: number;
+  transactionIds: string[];
+  accounts: string[];
+  failedAirdrops: { address: string; amount: string }[];
+}[];
