@@ -4,6 +4,7 @@ import {
   FUND_MANAGER_COMPONENT,
 } from "@/constants/address";
 import { typescriptWallet } from "@/wallet/config";
+import Decimal from "decimal.js";
 
 export const get_start_unlock_owner_stake_units_manifest = async (
   amount: string
@@ -130,12 +131,22 @@ export const get_buyback_airdrop_manifest = async (
   }
 
   const accountAddress = addressResult.value;
+  const distributionAmount = airdropData
+    .reduce((acc, item) => acc.plus(new Decimal(item.amount)), new Decimal(0))
+    .add(1)
+    .toFixed(18);
   return `
     CALL_METHOD
         Address("${accountAddress}")
         "create_proof_of_amount"
         Address("${FUND_BOT_BADGE}")
         Decimal("1")
+    ;
+    CALL_METHOD
+        Address("${accountAddress}")
+        "withdraw"
+        Address("${tokenAddress}")
+        Decimal("${distributionAmount}")
     ;
     TAKE_ALL_FROM_WORKTOP
         Address("${tokenAddress}")
