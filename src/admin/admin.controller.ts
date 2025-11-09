@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpException,
   HttpStatus,
   Logger,
@@ -71,6 +72,32 @@ export class AdminController {
 
       throw new HttpException(
         (error as Error).message || "Failed to set protocol percentages",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Get("get-protocols-percentages")
+  async getProtocolsPercentages() {
+    try {
+      const data = await this.adminService.getProtocolsPercentages();
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      this.logger.error(
+        "Failed to fetch protocol percentages",
+        (error as Error).stack
+      );
+
+      throw new HttpException(
+        (error as Error).message || "Failed to fetch protocol percentages",
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }

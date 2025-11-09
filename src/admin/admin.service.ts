@@ -87,4 +87,14 @@ export class AdminService {
 
     return { txId: txResult.txId };
   }
+
+  async getProtocolsPercentages(): Promise<ProtocolPercentage[]> {
+    const records = await this.protocolPercentageRepository.find({
+      order: { name: "ASC" },
+    });
+
+    this.logger.log(`Fetched ${records.length} protocol percentage records`);
+
+    return records;
+  }
 }
