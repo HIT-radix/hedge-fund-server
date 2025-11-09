@@ -175,3 +175,31 @@ export const get_buyback_airdrop_manifest = async (
     ;
   `;
 };
+
+export const set_defi_protocols_percentages_manifest = async (
+  percentages: { protocol: string; percentage: number }[]
+) => {
+  const addressResult = await typescriptWallet.getAccountAddress();
+
+  if (addressResult.isErr()) {
+    throw new Error(`Failed to get account address: ${addressResult.error}`);
+  }
+
+  const accountAddress = addressResult.value;
+  return `
+    CALL_METHOD
+      Address("${accountAddress}")
+      "create_proof_of_amount"
+      Address("${FUND_BOT_BADGE}")
+      Decimal("1")
+    ;
+    CALL_METHOD
+      Address("${FUND_MANAGER_COMPONENT}")
+      "set_defi_protocols_percentage"
+      Map<String, U8>(
+          ${percentages
+            .map((p) => `"${p.protocol}" => ${p.percentage}u8`)
+            .join(",\n          ")}
+      )
+    ;`;
+};
