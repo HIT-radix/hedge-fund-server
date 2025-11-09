@@ -4,8 +4,9 @@ import { ConfigModule } from "@nestjs/config";
 import { ScheduleModule } from "@nestjs/schedule";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
-import { SnapshotsModule } from "./snapshots/snapshots.module";
+// import { SnapshotsModule } from "./snapshots/snapshots.module";
 import { AirdropsModule } from "./airdrops/airdrops.module";
+import { AdminModule } from "./admin/admin.module";
 
 @Module({
   imports: [
@@ -32,8 +33,9 @@ import { AirdropsModule } from "./airdrops/airdrops.module";
       retryAttempts: 5, // Retry connection 5 times
       retryDelay: 3000, // 3 seconds between retries
     }),
-    SnapshotsModule,
+    // SnapshotsModule,
     AirdropsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
