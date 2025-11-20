@@ -5,6 +5,10 @@ export class ProtocolPercentage {
   @PrimaryColumn({ type: "varchar", length: 255 })
   name: string;
 
-  @Column({ type: "int", unsigned: true })
+  @Column({
+    type: "decimal",
+    precision: 6,
+    scale: 2,
+  })
   percentage: number;
 }

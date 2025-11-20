@@ -4,7 +4,7 @@ import { ConfigModule } from "@nestjs/config";
 import { ScheduleModule } from "@nestjs/schedule";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
-// import { SnapshotsModule } from "./snapshots/snapshots.module";
+import { SnapshotsModule } from "./snapshots/snapshots.module";
 import { AirdropsModule } from "./airdrops/airdrops.module";
 import { AdminModule } from "./admin/admin.module";
 
@@ -15,7 +15,7 @@ import { AdminModule } from "./admin/admin.module";
     TypeOrmModule.forRoot({
       type: "mysql",
       host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT),
+      port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : undefined,
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
@@ -32,8 +32,9 @@ import { AdminModule } from "./admin/admin.module";
       },
       retryAttempts: 5, // Retry connection 5 times
       retryDelay: 3000, // 3 seconds between retries
+      timezone: "Z", // Force UTC timezone for dates to ensure consistency
     }),
-    // SnapshotsModule,
+    SnapshotsModule,
     AirdropsModule,
     AdminModule,
   ],

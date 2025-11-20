@@ -1,5 +1,4 @@
 import { typescriptWallet } from "../config";
-import { logger } from "./logger";
 
 export const sendTransactionManifest = (txManifest: string, lock_fee = 100) => {
   return typescriptWallet
