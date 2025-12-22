@@ -70,8 +70,6 @@ Triggers an update of NFT holders data from the blockchain.
 Update the addresses in `src/snapshots/config/radix.config.ts` with your actual dApp addresses:
 
 - `DAPP_DEFINITION_ADDRESS`: Your dApp definition address
-- `NODE_STAKING_COMPONENT_ADDRESS`: Your node staking component address
-- `NODE_STAKING_USER_BADGE_ADDRESS`: Your user badge resource address
 - `EXPECTED_ORIGIN`: Your dApp's domain
 
 ## How It Works
