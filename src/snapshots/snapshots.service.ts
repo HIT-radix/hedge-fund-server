@@ -782,6 +782,10 @@ export class SnapshotsService {
   @Cron("0 0 12 * * 1", { timeZone: "UTC" })
   async scheduledOperation_STEP_2() {
     try {
+      const nodeInfo = await this.testFetchValidatorInfo();
+      if (nodeInfo && new Decimal(nodeInfo.unlockedLSUs).lessThanOrEqualTo(0)) {
+        nodeInfo.metadata.return;
+      }
       // Gate: only run STEP 2 if STEP 1 has ended
       if (this.lastTriggeringState !== LastTriggeringState.STEP1_END) {
         this.logger.warn(
