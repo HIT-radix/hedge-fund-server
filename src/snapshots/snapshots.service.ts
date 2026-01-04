@@ -792,8 +792,9 @@ export class SnapshotsService {
 
       this.lastTriggeringState = LastTriggeringState.STEP2_START;
       this.logger.log("[CRON] Starting scheduledOperation_STEP_2");
+
       const snapshots = await this.getSnapshotsFromDb({
-        daysAgo: 0,
+        daysAgo: 29,
         state: SnapshotState.UNLOCK_STARTED,
       });
 
@@ -864,9 +865,11 @@ export class SnapshotsService {
       }
 
       this.lastTriggeringState = LastTriggeringState.STEP3_START;
+
       this.logger.log("[CRON] Starting scheduledOperation_STEP_3");
+
       const snapshots = await this.getSnapshotsFromDb({
-        daysAgo: 0,
+        daysAgo: 8,
         state: SnapshotState.UNSTAKE_STARTED,
       });
 
