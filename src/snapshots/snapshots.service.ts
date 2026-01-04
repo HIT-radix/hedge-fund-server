@@ -11,6 +11,7 @@ import { SnapshotState } from "@/interfaces/enum";
 import { RADIX_CONFIG } from "@/config/radix.config";
 import {
   DAPP_DEFINITION_ADDRESS,
+  NODE_CLAIM_NFT_ADDRESS,
   VALIDATOR_ADDRESS,
   XRD_RESOURCE_ADDRESS,
 } from "@/constants/address";
@@ -26,6 +27,7 @@ import {
 import {
   fetchValidatorInfo,
   getEventKeyValuesFromTransaction,
+  fetchUnstakeClaimNFTData,
 } from "radix-utils";
 import {
   getPriceDataFromMorpherOracle,
@@ -883,7 +885,31 @@ export class SnapshotsService {
 
       if (!snapshot) {
         this.logger.warn("[STEP#3] No snapshot found");
+        this.lastTriggeringState = LastTriggeringState.STEP2_END;
         throw new Error("[STEP#3] No snapshot found");
+      }
+
+      const epoch =
+        (await this.gatewayApi.status.innerClient.gatewayStatus())?.ledger_state
+          ?.epoch || 0;
+      const unstakeClaimData = await fetchUnstakeClaimNFTData(
+        this.gatewayApi,
+        NODE_CLAIM_NFT_ADDRESS,
+        [snapshot.claim_nft_id]
+      );
+
+      const readyUnstakes = Object.values(unstakeClaimData).map((nft) => {
+        const isReadyToUnstake = +nft.claim_epoch <= epoch;
+        return isReadyToUnstake;
+      });
+
+      if (readyUnstakes.length === 0 || !readyUnstakes[0]) {
+        this.logger.log(
+          "[STEP#3] Unstake not ready yet for claim NFT ID:",
+          snapshot.claim_nft_id
+        );
+        this.lastTriggeringState = LastTriggeringState.STEP2_END;
+        return;
       }
 
       this.logger.log(
