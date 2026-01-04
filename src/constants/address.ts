@@ -26,6 +26,11 @@ export const FUND_BOT_BADGE =
     ? "resource_tdx_2_1t40pyc05pfmsqvslxpnystfyxe654h856r049gfxc009cjrp6kluta"
     : "resource_rdx1t5s0qfsgsfhlf8q3sutt8j500dk2el4p3dk4psxyagqxdfwuhrm56k";
 
+export const NODE_CLAIM_NFT_ADDRESS =
+  process.env.ENVIRONMENT === "dev"
+    ? "resource_rdx1ngyn7ea28quxf44fsg4hxq6q6fhah2lwh5t32sarglygp9xl76c4tz"
+    : "resource_rdx1ngyn7ea28quxf44fsg4hxq6q6fhah2lwh5t32sarglygp9xl76c4tz";
+
 export const FUND_UNIT_RESOURCE_ADDRESS =
   process.env.ENVIRONMENT === "dev"
     ? "resource_tdx_2_1t4ny2slhdk7dgshdaxggs3efddfp8j3uf838km74fcys9f8lwttd3n"
