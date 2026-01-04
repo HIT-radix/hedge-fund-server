@@ -703,10 +703,10 @@ export class SnapshotsService {
   }
 
   /**
-   * Scheduled operation STEP 1 - Runs every 15 minutes
+   * Scheduled operation STEP 1 - Runs every sunday at 12:00 UTC
    * Creates snapshot and starts unlock operation
    */
-  @Cron("0 0,15,30,45 * * * *")
+  @Cron("0 0 12 * * 0", { timeZone: "UTC" })
   async scheduledOperation_STEP_1() {
     try {
       // Gate: only run STEP 1 if previous state indicates STEP 3 ended
@@ -776,10 +776,10 @@ export class SnapshotsService {
   }
 
   /**
-   * Scheduled operation STEP 2 - Runs 5 minutes after STEP 1 (5, 20, 35, 50 minutes)
+   * Scheduled operation STEP 2 - Runs every monday at 12:00 UTC
    * Starts unstake operation for existing snapshots
    */
-  @Cron("0 5,20,35,50 * * * *")
+  @Cron("0 0 12 * * 1", { timeZone: "UTC" })
   async scheduledOperation_STEP_2() {
     try {
       // Gate: only run STEP 2 if STEP 1 has ended
@@ -850,10 +850,10 @@ export class SnapshotsService {
   }
 
   /**
-   * Scheduled operation STEP 3 - Runs 5 minutes after STEP 2 (10, 25, 40, 55 minutes)
+   * Scheduled operation STEP 3 - Runs every tuesday at 12:00 UTC
    * Finishes unstake operation and distributes funds
    */
-  @Cron("0 10,25,40,55 * * * *")
+  @Cron("0 0 12 * * 2", { timeZone: "UTC" })
   async scheduledOperation_STEP_3() {
     try {
       // Gate: only run STEP 3 if STEP 2 has ended
