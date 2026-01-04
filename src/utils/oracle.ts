@@ -7,8 +7,8 @@ import {
   getPublicKey_BLS12_381,
   hexToUint8Array,
 } from "@/wallet/helpers/noble-curves";
-import { bytesToHex } from "@noble/curves/utils";
-import { bls12_381 } from "@noble/curves/bls12-381";
+import { bytesToHex } from "@noble/curves/utils.js";
+import { bls12_381 } from "@noble/curves/bls12-381.js";
 import { MORPHER_ORACLE_BACKEND_URL } from "@/constants/endpoints";
 import { MORPHER_ORACLE_NFT_ID } from "@/constants/address";
 

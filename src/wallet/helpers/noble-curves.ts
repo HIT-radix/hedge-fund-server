@@ -1,4 +1,4 @@
-import { bls12_381 } from "@noble/curves/bls12-381";
+import { bls12_381 } from "@noble/curves/bls12-381.js";
 // Convert hex string to Uint8Array
 export function hexToUint8Array(hex: string): Uint8Array {
   // Remove '0x' prefix if present
