@@ -411,41 +411,6 @@ export class SnapshotsService {
   }
 
   /**
-   * Fetch snapshots with state UNSTAKE_STARTED that are at least 7 days old
-   * @returns Promise<Snapshot[]> Array of matching snapshots
-   */
-  async getUnstakeStartedSnapshotsOlderThanSevenDays(): Promise<Snapshot[]> {
-    try {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-      this.logger.log(
-        `Fetching snapshots with state UNSTAKE_STARTED older than 7 days (before ${sevenDaysAgo.toISOString()})`
-      );
-
-      const snapshots = await this.snapshotRepository.find({
-        where: {
-          state: SnapshotState.UNSTAKE_STARTED,
-          date: LessThan(sevenDaysAgo),
-        },
-        order: { date: "DESC" },
-      });
-
-      this.logger.log(
-        `Found ${snapshots.length} snapshots with state UNSTAKE_STARTED older than 7 days`
-      );
-
-      return snapshots;
-    } catch (error) {
-      this.logger.error(
-        "Error fetching UNSTAKE_STARTED snapshots older than 7 days:",
-        error
-      );
-      throw error;
-    }
-  }
-
-  /**
    * Fetch snapshot accounts with optional filters.
    * If no filters are provided, returns all snapshot accounts.
    * @param walletAddress (optional) filter by a specific wallet/account address
