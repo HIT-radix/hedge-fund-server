@@ -19,7 +19,7 @@ export const HIT_FOMO_NODE_LSU_ADDRESS =
 export const FUND_MANAGER_COMPONENT =
   process.env.ENVIRONMENT === "dev"
     ? "component_tdx_2_1cpdhxgf8nmvzczs9ttvaf3307lq8m4wdky66rpn4zy5qdaat0av5sg"
-    : "component_rdx1cqpv4nfsgfk9c2r9ymnqyksfkjsg07mfc49m9qw3dpgzrmjmsuuquv";
+    : "component_rdx1cpd5eajj0rq9dcwuymdhjhcrn2k62xgn07msfj2xhk3rn8mn2gcuut";
 
 export const FUND_BOT_BADGE =
   process.env.ENVIRONMENT === "dev"
@@ -30,11 +30,6 @@ export const NODE_CLAIM_NFT_ADDRESS =
   process.env.ENVIRONMENT === "dev"
     ? "resource_rdx1ngyn7ea28quxf44fsg4hxq6q6fhah2lwh5t32sarglygp9xl76c4tz"
     : "resource_rdx1ngyn7ea28quxf44fsg4hxq6q6fhah2lwh5t32sarglygp9xl76c4tz";
-
-export const FUND_UNIT_RESOURCE_ADDRESS =
-  process.env.ENVIRONMENT === "dev"
-    ? "resource_tdx_2_1t4ny2slhdk7dgshdaxggs3efddfp8j3uf838km74fcys9f8lwttd3n"
-    : "resource_rdx1t5s0qfsgsfhlf8q3sutt8j500dk2el4p3dk4psxyagqxdfwuhrm56k";
 
 export const ACCOUNT_LOCKER_ADDRESS =
   process.env.ENVIRONMENT === "dev"
