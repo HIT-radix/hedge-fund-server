@@ -705,10 +705,10 @@ export class SnapshotsService {
   }
 
   /**
-   * Scheduled operation STEP 1 - Runs every wednesday at 23:00 UTC
+   * Scheduled operation STEP 1 - Runs every thursday at 23:00 UTC
    * Creates snapshot and starts unlock operation
    */
-  @Cron("0 0 23 * * 3", { timeZone: "UTC" })
+  @Cron("0 0 23 * * 4", { timeZone: "UTC" })
   async scheduledOperation_STEP_1() {
     try {
       // Gate: only run STEP 1 if previous state indicates STEP 3 ended
@@ -778,10 +778,10 @@ export class SnapshotsService {
   }
 
   /**
-   * Scheduled operation STEP 2 - Runs every thursday at 23:00 UTC
+   * Scheduled operation STEP 2 - Runs every friday at 23:00 UTC
    * Starts unstake operation for existing snapshots
    */
-  @Cron("0 0 23 * * 4", { timeZone: "UTC" })
+  @Cron("0 0 23 * * 5", { timeZone: "UTC" })
   async scheduledOperation_STEP_2() {
     try {
       const nodeInfo = await this.testFetchValidatorInfo();
@@ -857,10 +857,10 @@ export class SnapshotsService {
   }
 
   /**
-   * Scheduled operation STEP 3 - Runs every friday at 23:00 UTC
+   * Scheduled operation STEP 3 - Runs every saturday at 23:00 UTC
    * Finishes unstake operation and distributes funds
    */
-  @Cron("0 0 23 * * 5", { timeZone: "UTC" })
+  @Cron("0 0 23 * * 6", { timeZone: "UTC" })
   async scheduledOperation_STEP_3() {
     try {
       // Gate: only run STEP 3 if STEP 2 has ended
