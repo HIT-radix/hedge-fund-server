@@ -50,3 +50,8 @@ export const MORPHER_ORACLE_NFT_RESOURCE_ADDRESS =
   process.env.ENVIRONMENT === "dev"
     ? "resource_tdx_2_1nt8kpf7m6g9l0p6w6yu4jd0pc4vac564s8f20qmzf782r90fmrgrpt"
     : "resource_rdx1nfeeyrpqdkrcjmng09tdrtr6cpknlz0qadra0p3wc3ffg7p6w848gd";
+
+export const WEFT_COLLATERAL_NFT_RESOURCE_ADDRESS =
+  process.env.ENVIRONMENT === "dev"
+    ? "resource_rdx1nt22yfvhuuhxww7jnnml5ec3yt5pkxh0qlghm6f0hz46z2wfk80s9r"
+    : "resource_rdx1nt22yfvhuuhxww7jnnml5ec3yt5pkxh0qlghm6f0hz46z2wfk80s9r";
