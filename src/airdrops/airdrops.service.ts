@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import Decimal from "decimal.js";
 import { get_buyback_airdrop_manifest } from "@/utils/manifests";
-import { executeTransactionManifest } from "@/utils/helpers";
+import { chunkArray, executeTransactionManifest } from "@/utils/helpers";
 import { LsuHolderService } from "@/common/services/lsu-holder.service";
 import { BuyBackAirdropResult } from "@/interfaces/types.interface";
 
@@ -74,7 +74,7 @@ export class AirdropsService {
         );
       }
 
-      const chunks = this.chunkArray(airdropData, 80);
+      const chunks = chunkArray(airdropData, 80);
       const successfulAccounts: string[] = [];
       const txIds: string[] = [];
       const failedAirdrops: { address: string; amount: string }[] = [];
@@ -123,13 +123,5 @@ export class AirdropsService {
     }
 
     return results;
-  }
-
-  private chunkArray<T>(items: T[], chunkSize: number): T[][] {
-    const chunks: T[][] = [];
-    for (let i = 0; i < items.length; i += chunkSize) {
-      chunks.push(items.slice(i, i + chunkSize));
-    }
-    return chunks;
   }
 }
