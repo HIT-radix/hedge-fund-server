@@ -297,7 +297,8 @@ export class SnapshotsService {
       this.logger.log(`Creating snapshot at date: ${date.toISOString()}`);
 
       // Get LSU amounts for the specified date
-      const lsuData = await this.lsuHolderService.getNodeLSUholder();
+      const lsuData =
+        await this.lsuHolderService.getTotalLSUsHoldersWithAmount();
 
       if (!lsuData) {
         this.logger.warn(`No LSU data found for date: ${date.toISOString()}`);
@@ -308,7 +309,7 @@ export class SnapshotsService {
       return await this.withDbRetry(async () => {
         const snapshot = await this.saveSnapshot(
           date,
-          lsuData.usersWithResourceAmount,
+          lsuData.totalLsuHolderWithAmount,
           state,
           claimNftId
         );
@@ -316,7 +317,7 @@ export class SnapshotsService {
         if (snapshot) {
           this.logger.log(
             `Successfully created snapshot at ${date.toISOString()} with total LSU amount: ${
-              lsuData.totalAmount
+              lsuData.totalLsuAmount
             }`
           );
         }
