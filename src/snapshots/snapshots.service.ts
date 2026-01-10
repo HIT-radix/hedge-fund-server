@@ -75,6 +75,13 @@ export class SnapshotsService {
     });
   }
 
+  // Normalize date precision to seconds to match DB datetime column
+  private normalizeDateToSecond(date: Date): Date {
+    const normalized = new Date(date);
+    normalized.setMilliseconds(0);
+    return normalized;
+  }
+
   /**
    * Execute a database operation with connection retry logic
    * @param operation Function that performs the database operation
@@ -170,13 +177,15 @@ export class SnapshotsService {
    * @returns Promise<Snapshot | null> The saved snapshot or null if failed
    */
   async saveSnapshot(
-    date: Date,
+    rawDate: Date,
     accountsData: Record<string, string>,
     state: SnapshotState = SnapshotState.UNLOCK_STARTED,
     claimNftId?: string | null,
     updateAccounts: boolean = true
   ): Promise<Snapshot | null> {
     try {
+      const date = this.normalizeDateToSecond(rawDate);
+
       this.logger.log(`Saving snapshot for date: ${date.toISOString()}`);
 
       return await this.withDbRetry(async () => {
@@ -278,11 +287,13 @@ export class SnapshotsService {
    * @returns Promise<Snapshot | null> The created snapshot or null if failed
    */
   async createSnapshot(
-    date: Date,
+    rawDate: Date,
     state: SnapshotState = SnapshotState.UNLOCK_STARTED,
     claimNftId?: string | null
   ) {
     try {
+      const date = this.normalizeDateToSecond(rawDate);
+
       this.logger.log(`Creating snapshot at date: ${date.toISOString()}`);
 
       // Get LSU amounts for the specified date
@@ -337,10 +348,11 @@ export class SnapshotsService {
       const where: any = {};
 
       if (exactDate) {
+        const normalizedExactDate = this.normalizeDateToSecond(exactDate);
         // Exact date match has precedence
-        where.date = exactDate;
+        where.date = normalizedExactDate;
         this.logger.log(
-          `Fetching snapshots for exact date ${exactDate.toISOString()}$${
+          `Fetching snapshots for exact date ${normalizedExactDate.toISOString()}$${
             claimNftId !== undefined ? ` with claim_nft_id ${claimNftId}` : ""
           }`
         );
@@ -348,10 +360,11 @@ export class SnapshotsService {
         // Determine cutoff date precedence: explicit beforeDate > daysAgo > default(29)
         let cutoff: Date;
         if (beforeDate) {
-          cutoff = beforeDate;
+          cutoff = this.normalizeDateToSecond(beforeDate);
         } else if (typeof daysAgo === "number" && !isNaN(daysAgo)) {
           cutoff = new Date();
           cutoff.setDate(cutoff.getDate() - daysAgo);
+          cutoff = this.normalizeDateToSecond(cutoff);
         }
         // else {
         //   cutoff = new Date();
@@ -429,7 +442,7 @@ export class SnapshotsService {
 
       const where: any = {};
       if (date) {
-        where.date = date;
+        where.date = this.normalizeDateToSecond(date);
       }
       if (walletAddress) {
         where.account = walletAddress;
@@ -468,7 +481,7 @@ export class SnapshotsService {
    * @returns Promise<{ success: boolean; deletedAccountsCount: number; message: string }> Result of the deletion operation
    */
   async deleteSnapshot(
-    date: Date,
+    rawDate: Date,
     claimNftId?: string | null
   ): Promise<{
     success: boolean;
@@ -476,6 +489,8 @@ export class SnapshotsService {
     message: string;
   }> {
     try {
+      const date = this.normalizeDateToSecond(rawDate);
+
       this.logger.log(
         `Attempting to delete snapshot for date: ${date.toISOString()}${
           claimNftId !== undefined ? ` with claim_nft_id: ${claimNftId}` : ""
@@ -555,7 +570,7 @@ export class SnapshotsService {
         });
       });
     } catch (error) {
-      const errorMessage = `Error deleting snapshot for date: ${date.toISOString()}${
+      const errorMessage = `Error deleting snapshot for date: ${rawDate.toISOString()}${
         claimNftId !== undefined ? ` with claim_nft_id: ${claimNftId}` : ""
       }`;
       this.logger.error(errorMessage, error);
@@ -721,7 +736,7 @@ export class SnapshotsService {
 
       this.lastTriggeringState = LastTriggeringState.STEP1_START;
       this.logger.log("[CRON] Starting scheduledOperation_STEP_1");
-      const date = new Date();
+      const date = this.normalizeDateToSecond(new Date());
       // Implementation for the scheduled start unlock operation
       const node_info = await fetchValidatorInfo(
         this.gatewayApi,
