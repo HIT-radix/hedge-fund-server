@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, DataSource, LessThan, IsNull, In } from "typeorm";
+import { Repository, DataSource, IsNull, In, LessThanOrEqual } from "typeorm";
 import { GatewayApiClient } from "@radixdlt/babylon-gateway-api-sdk";
 import { Cron } from "@nestjs/schedule";
 import { NftHolder } from "@/database/entities/nft-holder.entity";
@@ -371,14 +371,16 @@ export class SnapshotsService {
         //   cutoff.setDate(cutoff.getDate() - 29);
         // }
 
-        where.date = LessThan(cutoff);
-        this.logger.log(
-          `Fetching snapshots older than cutoff ${cutoff.toISOString()} (${
-            daysAgo ?? (beforeDate ? "explicit" : 29)
-          } days reference)$${
-            claimNftId !== undefined ? ` with claim_nft_id ${claimNftId}` : ""
-          }`
-        );
+        if (cutoff) {
+          where.date = LessThanOrEqual(cutoff);
+          this.logger.log(
+            `Fetching snapshots older than cutoff ${cutoff.toISOString()} (${
+              daysAgo ?? (beforeDate ? "explicit" : 29)
+            } days reference)$$${
+              claimNftId !== undefined ? ` with claim_nft_id ${claimNftId}` : ""
+            }`
+          );
+        }
       }
 
       if (claimNftId !== undefined) {
