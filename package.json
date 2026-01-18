@@ -9,6 +9,7 @@
     "start:dev": "nodemon",
     "start:debug": "nodemon --exec \"ts-node --inspect-brk -r tsconfig-paths/register src/main.ts\"",
     "start:prod": "node dist/main.js",
+    "test": "jest",
     "mysql:start": "brew services start mysql && echo '✅ MySQL started'",
     "mysql:stop": "brew services stop mysql && echo '🛑 MySQL stopped'",
     "mysql:status": "brew services list | grep mysql",
@@ -52,8 +53,11 @@
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
+    "@types/jest": "^29.5.14",
     "@types/node": "^24.1.0",
+    "jest": "^29.7.0",
     "nodemon": "^3.1.10",
+    "ts-jest": "^29.3.4",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.2"
