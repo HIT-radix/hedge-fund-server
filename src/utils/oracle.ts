@@ -64,13 +64,26 @@ export const fetchPriceDataFromOracle = async (
   const response = await fetch(oracleUrl);
 
   if (!response.ok) {
-    throw new Error(
-      `Oracle API error: ${JSON.stringify(await response.json())}`
-    );
+    // Try to get response text for better error message
+    let errorMessage = `Oracle API error (${response.status} ${response.statusText})`;
+    try {
+      const responseText = await response.text();
+      errorMessage += `: ${responseText.substring(0, 500)}`; // Limit length
+    } catch (e) {
+      errorMessage += `: Unable to read response body`;
+    }
+    throw new Error(errorMessage);
   }
 
-  const priceData = (await response.json()) as MorpherPriceData;
-  return priceData;
+  try {
+    const priceData = (await response.json()) as MorpherPriceData;
+    return priceData;
+  } catch (error) {
+    const responseText = await response.text();
+    throw new Error(
+      `Failed to parse Oracle response as JSON. Response: ${responseText.substring(0, 500)}`
+    );
+  }
 };
 
 export const getPriceDataFromMorpherOracle = async (
