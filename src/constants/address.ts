@@ -44,7 +44,7 @@ export const DAPP_DEFINITION_ADDRESS =
 export const MORPHER_ORACLE_NFT_ID =
   process.env.ENVIRONMENT === "dev"
     ? "{cfd5d86c9d43b11e-78622846f264c0a0-e5256cd3fdb3a1e4-1e648e9bb24ca5de}"
-    : "{a1dcb97c000ff3fe-9803f2e065d3cd34-222d0221f646925c-58b9f9c57ba16fbc}";
+    : "{8408f20781d53d44-cb2d523270f04cd7-a7e51cdf58953534-34fd63bc2e806aa4}";
 
 export const MORPHER_ORACLE_NFT_RESOURCE_ADDRESS =
   process.env.ENVIRONMENT === "dev"
