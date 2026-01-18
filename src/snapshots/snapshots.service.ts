@@ -396,14 +396,14 @@ export class SnapshotsService {
           claimNftId === undefined
             ? "none"
             : claimNftId === null
-            ? "NULL"
-            : claimNftId
+              ? "NULL"
+              : claimNftId
         }, stateFilter=$${
           state === undefined
             ? "none"
             : Array.isArray(state)
-            ? state.join(",")
-            : state
+              ? state.join(",")
+              : state
         })`
       );
 
@@ -576,9 +576,8 @@ export class SnapshotsService {
   }
 
   async pingFundManagerToStartUnlockOperation(availableLockedLSUs: string) {
-    const manifest = await get_start_unlock_owner_stake_units_manifest(
-      availableLockedLSUs
-    );
+    const manifest =
+      await get_start_unlock_owner_stake_units_manifest(availableLockedLSUs);
     return await executeTransactionManifest(manifest, 10);
   }
 
@@ -741,9 +740,8 @@ export class SnapshotsService {
 
       // this.logger.log("[STEP#1]:", snapshot);
 
-      const pingResult = await this.pingFundManagerToStartUnlockOperation(
-        availableLockedLSUs
-      );
+      const pingResult =
+        await this.pingFundManagerToStartUnlockOperation(availableLockedLSUs);
 
       if (pingResult.success) {
         this.logger.log("[STEP#1]:", pingResult);
