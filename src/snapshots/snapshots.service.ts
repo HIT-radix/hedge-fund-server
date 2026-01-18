@@ -36,24 +36,10 @@ import {
 import { MorpherPriceData } from "@/interfaces/types.interface";
 import { HIT_SERVER_URL } from "@/constants/endpoints";
 
-// Tracks the last lifecycle state of the scheduled trigger pipeline
-enum LastTriggeringState {
-  STEP1_START = "STEP1_START",
-  STEP1_END = "STEP1_END",
-  STEP2_START = "STEP2_START",
-  STEP2_END = "STEP2_END",
-  STEP3_START = "STEP3_START",
-  STEP3_END = "STEP3_END",
-}
-
 @Injectable()
 export class SnapshotsService {
   private readonly logger = new Logger(SnapshotsService.name);
   private readonly gatewayApi: GatewayApiClient;
-  // Last triggering state across the 3-step scheduled pipeline.
-  // Initialized to STEP3_END so STEP 1 is allowed to start first.
-  private lastTriggeringState: LastTriggeringState =
-    LastTriggeringState.STEP3_END;
 
   constructor(
     @InjectRepository(NftHolder)
@@ -729,15 +715,6 @@ export class SnapshotsService {
   @Cron("0 0 23 * * 4", { timeZone: "UTC" })
   async scheduledOperation_STEP_1() {
     try {
-      // Gate: only run STEP 1 if previous state indicates STEP 3 ended
-      if (this.lastTriggeringState !== LastTriggeringState.STEP3_END) {
-        this.logger.warn(
-          `[CRON][STEP#1] Skipped: last state is ${this.lastTriggeringState}, expected ${LastTriggeringState.STEP3_END}`
-        );
-        return null;
-      }
-
-      this.lastTriggeringState = LastTriggeringState.STEP1_START;
       this.logger.log("[CRON] Starting scheduledOperation_STEP_1");
       const date = this.normalizeDateToSecond(new Date());
       // Implementation for the scheduled start unlock operation
@@ -750,7 +727,6 @@ export class SnapshotsService {
 
       if (new Decimal(300).greaterThan(node_info.currentlyEarnedLockedLSUs)) {
         this.logger.log("not enough locked LSUs to start unlock");
-        this.lastTriggeringState = LastTriggeringState.STEP1_END;
         return "not enough locked LSUs to start unlock";
       }
 
@@ -772,7 +748,6 @@ export class SnapshotsService {
         this.logger.log(
           "[CRON] scheduledOperation_STEP_1 completed successfully"
         );
-        this.lastTriggeringState = LastTriggeringState.STEP1_END;
         return pingResult;
       } else {
         this.logger.log("[STEP#1]: delete snapshot");
@@ -796,25 +771,16 @@ export class SnapshotsService {
   }
 
   /**
-   * Scheduled operation STEP 2 - Runs every friday at 23:00 UTC
+   * Scheduled operation STEP 2 - Runs every saturday at 12:30 UTC
    * Starts unstake operation for existing snapshots
    */
-  @Cron("0 0 23 * * 5", { timeZone: "UTC" })
+  @Cron("0 30 12 * * 6", { timeZone: "UTC" })
   async scheduledOperation_STEP_2() {
     try {
       const nodeInfo = await this.testFetchValidatorInfo();
       if (nodeInfo && new Decimal(nodeInfo.unlockedLSUs).lessThanOrEqualTo(0)) {
         return;
       }
-      // Gate: only run STEP 2 if STEP 1 has ended
-      if (this.lastTriggeringState !== LastTriggeringState.STEP1_END) {
-        this.logger.warn(
-          `[CRON][STEP#2] Skipped: last state is ${this.lastTriggeringState}, expected ${LastTriggeringState.STEP1_END}`
-        );
-        return null;
-      }
-
-      this.lastTriggeringState = LastTriggeringState.STEP2_START;
       this.logger.log("[CRON] Starting scheduledOperation_STEP_2");
 
       const snapshots = await this.getSnapshotsFromDb({
@@ -825,7 +791,6 @@ export class SnapshotsService {
       const snapshot = snapshots[0];
 
       if (!snapshot) {
-        this.lastTriggeringState = LastTriggeringState.STEP2_END;
         this.logger.warn("[STEP#2] No snapshot found");
         return null;
       }
@@ -856,7 +821,6 @@ export class SnapshotsService {
           claimNftId,
           false
         );
-        this.lastTriggeringState = LastTriggeringState.STEP2_END;
         this.logger.log(
           "[CRON] scheduledOperation_STEP_2 completed successfully"
         );
@@ -881,16 +845,6 @@ export class SnapshotsService {
   @Cron("0 0 23 * * 6", { timeZone: "UTC" })
   async scheduledOperation_STEP_3() {
     try {
-      // Gate: only run STEP 3 if STEP 2 has ended
-      if (this.lastTriggeringState !== LastTriggeringState.STEP2_END) {
-        this.logger.warn(
-          `[CRON][STEP#3] Skipped: last state is ${this.lastTriggeringState}, expected ${LastTriggeringState.STEP2_END}`
-        );
-        return null;
-      }
-
-      this.lastTriggeringState = LastTriggeringState.STEP3_START;
-
       this.logger.log("[CRON] Starting scheduledOperation_STEP_3");
 
       const snapshots = await this.getSnapshotsFromDb({
@@ -904,7 +858,6 @@ export class SnapshotsService {
 
       if (!snapshot) {
         this.logger.warn("[STEP#3] No snapshot found");
-        this.lastTriggeringState = LastTriggeringState.STEP3_END;
         return null;
       }
 
@@ -927,7 +880,6 @@ export class SnapshotsService {
           "[STEP#3] Unstake not ready yet for claim NFT ID:",
           snapshot.claim_nft_id
         );
-        this.lastTriggeringState = LastTriggeringState.STEP3_END;
         return null;
       }
 
@@ -1052,8 +1004,6 @@ export class SnapshotsService {
           null,
           false
         );
-
-        this.lastTriggeringState = LastTriggeringState.STEP3_END;
         this.logger.log(
           "[CRON] scheduledOperation_STEP_3 completed successfully"
         );
