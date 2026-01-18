@@ -588,18 +588,20 @@ export class SnapshotsService {
   }
 
   async pingFundManagerToFinishUnstakeOperation(
-    claimNftId: string,
-    morpherData: MorpherPriceData
+    claimNftId: string
+    // morpherData: MorpherPriceData
   ) {
-    const morpherMessage = priceMsgToMorpherString(morpherData);
-    const morpherSignature = morpherData.signature;
-    const manifest = await get_finish_unstake_manifest(claimNftId, [
-      {
-        coinAddress: XRD_RESOURCE_ADDRESS,
-        message: morpherMessage,
-        signature: morpherSignature,
-      },
-    ]);
+    // TODO: uncomment this when morpher api starts working again
+    // const morpherMessage = priceMsgToMorpherString(morpherData);
+    // const morpherSignature = morpherData.signature;
+    // const manifest = await get_finish_unstake_manifest(claimNftId, [
+    //   {
+    //     coinAddress: XRD_RESOURCE_ADDRESS,
+    //     message: morpherMessage,
+    //     signature: morpherSignature,
+    //   },
+    // ]);
+    const manifest = await get_finish_unstake_manifest(claimNftId, []);
     return await executeTransactionManifest(manifest, 10);
   }
 
@@ -887,17 +889,17 @@ export class SnapshotsService {
         `[STEP#3] Processing snapshot for date: ${snapshot.date}`
       );
 
-      const priceData = await getPriceDataFromMorpherOracle("GATEIO:XRD_USDT");
-
-      this.logger.log(
-        `[STEP#3] Fetched price data from Morpher Oracle: ${JSON.stringify(
-          priceData
-        )}`
-      );
+      // TODO: uncomment this when morpher api starts working again
+      // const priceData = await getPriceDataFromMorpherOracle("GATEIO:XRD_USDT");
+      // this.logger.log(
+      //   `[STEP#3] Fetched price data from Morpher Oracle: ${JSON.stringify(
+      //     priceData
+      //   )}`
+      // );
 
       const pingResult = await this.pingFundManagerToFinishUnstakeOperation(
-        snapshot.claim_nft_id,
-        priceData
+        snapshot.claim_nft_id
+        // priceData
       );
 
       this.logger.log(

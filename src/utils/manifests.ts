@@ -65,6 +65,27 @@ export const get_finish_unstake_manifest = async (
 
   const accountAddress = addressResult.value;
 
+  // TODO: uncomment this when morpher api starts working again
+  // return `
+  //   CALL_METHOD
+  //     Address("${accountAddress}")
+  //     "create_proof_of_amount"
+  //     Address("${FUND_BOT_BADGE}")
+  //     Decimal("1")
+  //   ;
+  //   CALL_METHOD
+  //     Address("${FUND_MANAGER_COMPONENT}")
+  //     "finish_unstake"
+  //     NonFungibleLocalId("${claimNftId}")
+  //     Map<Address, Tuple>(
+  //         ${morpherData
+  //           .map(
+  //             (item) =>
+  //               `Address("${item.coinAddress}") => Tuple("${item.message}", "${item.signature}")`
+  //           )
+  //           .join(", ")}
+  //     )
+  //   ;`;
   return `
     CALL_METHOD
       Address("${accountAddress}")
@@ -76,14 +97,7 @@ export const get_finish_unstake_manifest = async (
       Address("${FUND_MANAGER_COMPONENT}")
       "finish_unstake"
       NonFungibleLocalId("${claimNftId}")
-      Map<Address, Tuple>(
-          ${morpherData
-            .map(
-              (item) =>
-                `Address("${item.coinAddress}") => Tuple("${item.message}", "${item.signature}")`
-            )
-            .join(", ")}
-      )
+      Map<Address, Tuple>()
     ;`;
 };
 
