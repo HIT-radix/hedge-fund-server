@@ -4,6 +4,7 @@ import {
   HttpStatus,
   Get,
   Logger,
+  Query,
 } from "@nestjs/common";
 import { SnapshotsService } from "./snapshots.service";
 
@@ -12,6 +13,25 @@ export class SnapshotsController {
   private readonly logger = new Logger(SnapshotsController.name);
 
   constructor(private readonly snapshotsService: SnapshotsService) {}
+
+  private validateAdminSecret(secret?: string) {
+    if (!secret) {
+      throw new HttpException("Secret is required", HttpStatus.BAD_REQUEST);
+    }
+
+    const adminSecret = process.env.ADMIN_SECRET;
+
+    if (!adminSecret) {
+      throw new HttpException(
+        "Admin secret is not configured",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    if (secret !== adminSecret) {
+      throw new HttpException("Invalid secret", HttpStatus.UNAUTHORIZED);
+    }
+  }
 
   @Get("health")
   async healthCheck() {
@@ -146,8 +166,9 @@ export class SnapshotsController {
 
   // NOTE: Remove or protect this endpoint before production use.
   @Get("trigger-step-1")
-  async testScheduledStep1() {
+  async testScheduledStep1(@Query("secret") secret?: string) {
     try {
+      this.validateAdminSecret(secret);
       this.logger.log("Triggering step1 manually...");
 
       const result = await this.snapshotsService.scheduledOperation_STEP_1();
@@ -169,8 +190,9 @@ export class SnapshotsController {
 
   // NOTE: Remove or protect this endpoint before production use.
   @Get("trigger-step-2")
-  async testScheduledStep2() {
+  async testScheduledStep2(@Query("secret") secret?: string) {
     try {
+      this.validateAdminSecret(secret);
       this.logger.log("Triggering step2 manually...");
       const result = await this.snapshotsService.scheduledOperation_STEP_2();
 
@@ -190,8 +212,9 @@ export class SnapshotsController {
   }
 
   @Get("trigger-step-3")
-  async testScheduledStep3() {
+  async testScheduledStep3(@Query("secret") secret?: string) {
     try {
+      this.validateAdminSecret(secret);
       this.logger.log("Triggering step3 manually...");
 
       const result = await this.snapshotsService.scheduledOperation_STEP_3();
@@ -214,8 +237,9 @@ export class SnapshotsController {
   // Reset stuck funds units in STEP 3
   // NOTE: Remove or protect this endpoint before production use.
   @Get("reset-stuck-funds")
-  async resetStuckFunds() {
+  async resetStuckFunds(@Query("secret") secret?: string) {
     try {
+      this.validateAdminSecret(secret);
       this.logger.log("Resetting stuck funds units in STEP 3...");
 
       const result = await this.snapshotsService.resetStuckFundsUnitsIn_STEP3();
