@@ -59,7 +59,7 @@ export const generateMorpherOracleMessage = (
 export const fetchPriceDataFromOracle = async (
   oracleRequestMsg: OracleRequestMessage
 ) => {
-  const oracleUrl = `${MORPHER_ORACLE_BACKEND_URL}/v2/price/${oracleRequestMsg.marketId}/${oracleRequestMsg.publicKeyBLS}/${oracleRequestMsg.nftId}/${oracleRequestMsg.signature}`;
+  const oracleUrl = `${MORPHER_ORACLE_BACKEND_URL}/price/${oracleRequestMsg.marketId}/${oracleRequestMsg.publicKeyBLS}/${oracleRequestMsg.nftId}/${oracleRequestMsg.signature}`;
 
   const response = await fetch(oracleUrl);
 
@@ -102,7 +102,7 @@ export function priceMsgToMorpherString(msg: MorpherPriceData): string {
   return msg.data
     .map(
       (el) =>
-        el.marketId + "-" + el.price + "-" + el.nonce + "-" + el.dataTimestamp
+        el.marketId + "-" + el.price + "-" + el.nonce + "-" + el.createdAt,
     )
     .join(",");
 }

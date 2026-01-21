@@ -26,14 +26,15 @@ export type OracleRequestMessage = {
 
 export type MorpherPriceData = {
   data: {
-    version: number;
     marketId: string;
     price: string;
     nonce: string;
-    dataTimestamp: number;
-    oracleTimestamp: number;
-    marketStatusTimestamp: number;
-    marketStatus: string;
+    createdAt: number;
+    version?: number;
+    dataTimestamp?: number;
+    oracleTimestamp?: number;
+    marketStatusTimestamp?: number;
+    marketStatus?: string;
   }[];
   signature: string;
 };
