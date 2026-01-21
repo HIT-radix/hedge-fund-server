@@ -261,4 +261,35 @@ export class SnapshotsController {
       );
     }
   }
+
+  @Get("take-fund-unit-snapshot")
+  async takeFundUnitValueSnapshot(@Query("secret") secret?: string) {
+    try {
+      this.validateAdminSecret(secret);
+      this.logger.log("Taking fund unit value snapshot manually...");
+
+      const result = await this.snapshotsService.takeSnapshotOfFundUnitValue();
+
+      if (!result) {
+        throw new HttpException(
+          "Failed to store fund unit value snapshot",
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      return {
+        success: true,
+        message: "Fund unit value snapshot stored successfully",
+        data: result,
+        meta: { timestamp: new Date().toISOString() },
+      };
+    } catch (error) {
+      this.logger.error("Error taking fund unit value snapshot:", error);
+      if (error instanceof HttpException) throw error;
+      throw new HttpException(
+        (error as Error).message || "Failed to take fund unit value snapshot",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }
