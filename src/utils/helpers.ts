@@ -4,6 +4,8 @@ import {
 } from "@radixdlt/babylon-gateway-api-sdk";
 import { Decimal } from "decimal.js";
 import { sendTransactionManifest } from "@/wallet/helpers";
+import { generateRandomNonce } from "@radixdlt/radix-engine-toolkit";
+import { getFundUnitValueManifest } from "./manifests";
 
 // Configure Decimal for our use case
 Decimal.config({
@@ -125,3 +127,53 @@ export function chunkArray<T>(items: T[], chunkSize: number): T[][] {
   }
   return chunks;
 }
+
+export const simulateTx = async (
+  manifest: string,
+  gatewayApi: GatewayApiClient,
+) => {
+  const latestLedgerState =
+    await gatewayApi.transaction.innerClient.transactionConstruction();
+
+  const nonce = generateRandomNonce();
+
+  const preview = await gatewayApi.transaction.innerClient.transactionPreview({
+    transactionPreviewRequest: {
+      manifest,
+      nonce,
+      tip_percentage: 0,
+      flags: {
+        use_free_credit: true,
+        assume_all_signature_proofs: true,
+        skip_epoch_check: true,
+      },
+      start_epoch_inclusive: latestLedgerState.ledger_state.epoch,
+      end_epoch_exclusive: latestLedgerState.ledger_state.epoch + 1,
+      signer_public_keys: [],
+    },
+  });
+  return preview;
+};
+
+export const getFundUnitValue = async (
+  gatewayApi: GatewayApiClient,
+): Promise<{ net_value: string; gross_value: string } | undefined> => {
+  try {
+    const txResult = await simulateTx(getFundUnitValueManifest(), gatewayApi);
+    const receipt = txResult.receipt as {
+      output: {
+        programmatic_json: { fields: { kind: string; value: string }[] };
+      }[];
+    };
+    const net_value = receipt?.output[0]?.programmatic_json?.fields?.[0]?.value;
+    const gross_value =
+      receipt?.output[0]?.programmatic_json?.fields?.[1]?.value;
+    if (!net_value || !gross_value) {
+      return undefined;
+    }
+    return { net_value, gross_value };
+  } catch (error) {
+    console.log("Unable to get fund unit value");
+    return undefined;
+  }
+};
