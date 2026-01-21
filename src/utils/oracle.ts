@@ -24,11 +24,11 @@ const htfEthereum = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_";
 export const generateMorpherOracleMessage = (
   marketId: string,
   nftId: string,
-  privateKey?: string
+  privateKey?: string,
 ) => {
   const pvtKey = typescriptWallet.getWalletKeys().value.privateKey;
   let publicKeyBLS: string = getPublicKey_BLS12_381(
-    privateKey ? privateKey : pvtKey
+    privateKey ? privateKey : pvtKey,
   );
 
   // Create the request message
@@ -44,7 +44,7 @@ export const generateMorpherOracleMessage = (
   const msgHash = bls12_381.longSignatures.hash(msg, htfEthereum);
   const signature = bls12_381.longSignatures.sign(
     msgHash,
-    hexToUint8Array(privateKey ? privateKey : pvtKey)
+    hexToUint8Array(privateKey ? privateKey : pvtKey),
   );
   oracleRequest.signature = bytesToHex(signature.toBytes());
 
@@ -57,7 +57,7 @@ export const generateMorpherOracleMessage = (
 
 // Fetch price data using the signed oracle message
 export const fetchPriceDataFromOracle = async (
-  oracleRequestMsg: OracleRequestMessage
+  oracleRequestMsg: OracleRequestMessage,
 ) => {
   const oracleUrl = `${MORPHER_ORACLE_BACKEND_URL}/price/${oracleRequestMsg.marketId}/${oracleRequestMsg.publicKeyBLS}/${oracleRequestMsg.nftId}/${oracleRequestMsg.signature}`;
 
@@ -81,19 +81,19 @@ export const fetchPriceDataFromOracle = async (
   } catch (error) {
     const responseText = await response.text();
     throw new Error(
-      `Failed to parse Oracle response as JSON. Response: ${responseText.substring(0, 500)}`
+      `Failed to parse Oracle response as JSON. Response: ${responseText.substring(0, 500)}`,
     );
   }
 };
 
 export const getPriceDataFromMorpherOracle = async (
   marketId: string,
-  privateKey?: string
+  privateKey?: string,
 ) => {
   const oracleRequest = generateMorpherOracleMessage(
     marketId,
     MORPHER_ORACLE_NFT_ID,
-    privateKey
+    privateKey,
   );
   return await fetchPriceDataFromOracle(oracleRequest.oracleRequest);
 };
