@@ -6,6 +6,7 @@ import { NftHolder } from "@/database/entities/nft-holder.entity";
 import { LedgerState } from "@/database/entities/ledger-state.entity";
 import { Snapshot } from "@/database/entities/snapshot.entity";
 import { SnapshotAccount } from "@/database/entities/snapshot-account.entity";
+import { FuValue } from "@/database/entities/fund-unit-value.entity";
 import { LsuHolderService } from "@/common/services/lsu-holder.service";
 
 @Module({
@@ -15,6 +16,7 @@ import { LsuHolderService } from "@/common/services/lsu-holder.service";
       LedgerState,
       Snapshot,
       SnapshotAccount,
+      FuValue,
     ]),
   ],
   controllers: [SnapshotsController],

@@ -7,6 +7,7 @@ import { NftHolder } from "@/database/entities/nft-holder.entity";
 import { LedgerState } from "@/database/entities/ledger-state.entity";
 import { Snapshot } from "@/database/entities/snapshot.entity";
 import { SnapshotAccount } from "@/database/entities/snapshot-account.entity";
+import { FuValue } from "@/database/entities/fund-unit-value.entity";
 import { SnapshotState } from "@/interfaces/enum";
 import { RADIX_CONFIG } from "@/config/radix.config";
 import {
@@ -17,7 +18,7 @@ import {
 } from "@/constants/address";
 import Decimal from "decimal.js";
 import { LsuHolderService } from "@/common/services/lsu-holder.service";
-import { executeTransactionManifest } from "@/utils/helpers";
+import { executeTransactionManifest, getFundUnitValue } from "@/utils/helpers";
 import {
   get_finish_unstake_manifest,
   get_fund_units_distribution_manifest,
@@ -50,6 +51,8 @@ export class SnapshotsService {
     private snapshotRepository: Repository<Snapshot>,
     @InjectRepository(SnapshotAccount)
     private snapshotAccountRepository: Repository<SnapshotAccount>,
+    @InjectRepository(FuValue)
+    private fuValueRepository: Repository<FuValue>,
     private dataSource: DataSource,
     private readonly lsuHolderService: LsuHolderService
   ) {
@@ -1052,6 +1055,45 @@ export class SnapshotsService {
     } catch (error) {
       this.logger.error("pingErrorToTg error:", error);
       return null;
+    }
+  }
+
+  @Cron("0 0 22 * * *", { timeZone: "UTC" })
+  async takeSnapshotOfFundUnitValue(): Promise<FuValue | undefined> {
+    try {
+      const fundUnitValues = await getFundUnitValue(this.gatewayApi);
+      if (!fundUnitValues) {
+        this.logger.warn("Failed to fetch fund unit values");
+        await this.pingErrorToTg(
+          "[FundUnitValue] Failed to fetch fund unit values",
+        );
+        return undefined;
+      }
+
+      const timestamp = this.normalizeDateToSecond(new Date());
+
+      const savedRecord = await this.withDbRetry(async () => {
+        const record = this.fuValueRepository.create({
+          time: timestamp,
+          value: fundUnitValues.net_value,
+        });
+
+        return await this.fuValueRepository.save(record);
+      });
+
+      this.logger.log(
+        `Stored fund unit net value snapshot at ${timestamp.toISOString()}: ${fundUnitValues.net_value}`,
+      );
+
+      return savedRecord;
+    } catch (error) {
+      this.logger.error("Unable to store fund unit value snapshot:", error);
+      await this.pingErrorToTg(
+        `[FundUnitValue] Unable to store fund unit value snapshot: ${
+          (error as Error)?.message || error
+        }`,
+      );
+      return undefined;
     }
   }
 }
