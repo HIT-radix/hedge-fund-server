@@ -570,14 +570,6 @@ export class SnapshotsService {
     }
   }
 
-  async testFetchValidatorInfo() {
-    const nodeInfo = await fetchValidatorInfo(
-      this.gatewayApi,
-      VALIDATOR_ADDRESS,
-    );
-    return nodeInfo;
-  }
-
   async pingFundManagerToStartUnlockOperation(availableLockedLSUs: string) {
     const manifest =
       await get_start_unlock_owner_stake_units_manifest(availableLockedLSUs);
@@ -778,7 +770,10 @@ export class SnapshotsService {
   @Cron("0 30 12 * * 6", { timeZone: "UTC" })
   async scheduledOperation_STEP_2() {
     try {
-      const nodeInfo = await this.testFetchValidatorInfo();
+      const nodeInfo = await fetchValidatorInfo(
+        this.gatewayApi,
+        VALIDATOR_ADDRESS,
+      );
       if (nodeInfo && new Decimal(nodeInfo.unlockedLSUs).lessThanOrEqualTo(0)) {
         return;
       }
