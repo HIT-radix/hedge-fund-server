@@ -3,13 +3,9 @@ import {
   HttpException,
   HttpStatus,
   Get,
-  Query,
   Logger,
 } from "@nestjs/common";
 import { SnapshotsService } from "./snapshots.service";
-import { sendTransactionManifest } from "../wallet/helpers/send-tx-manifest";
-import { getPriceDataFromMorpherOracle } from "../utils/oracle";
-import { MORPHER_ORACLE_NFT_ID } from "@/constants/address";
 
 @Controller("snapshots")
 export class SnapshotsController {
@@ -251,76 +247,7 @@ export class SnapshotsController {
       throw new HttpException(
         (error as Error).message ||
           "Failed to execute scheduled operation step 3",
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
-  }
-
-  // Temporary test route to send a hardcoded transaction manifest through the TS wallet
-  // NOTE: Remove or protect this endpoint before production use.
-  @Get("test-send-tx")
-  async testSendTx() {
-    const manifest = `CALL_METHOD
-    Address("account_tdx_2_129y9wu3vugaeasnprxjlrqy3tpmr7hpurrmapmyqhsr26ehhrh22e2")
-    "withdraw"
-    Address("resource_tdx_2_1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxtfd2jc")
-    Decimal("17")
-;
-TAKE_FROM_WORKTOP
-    Address("resource_tdx_2_1tknxxxxxxxxxradxrdxxxxxxxxx009923554798xxxxxxxxxtfd2jc")
-    Decimal("17")
-    Bucket("bucket1")
-;
-CALL_METHOD
-    Address("account_tdx_2_1297g0fef53k3vvr0faz9dadz24pfppedqgygeu2p7m7a55pmpk4e3v")
-    "try_deposit_or_abort"
-    Bucket("bucket1")
-    Enum<0u8>()
-;`;
-
-    try {
-      const abc = await sendTransactionManifest(manifest, 10).match(
-        (txId) => ({ success: true, txId }),
-        (error) => {
-          throw new HttpException(
-            (error as any)?.message || "Transaction failed",
-            HttpStatus.BAD_REQUEST
-          );
-        }
-      );
-      return abc;
-    } catch (error) {
-      throw new HttpException(
-        (error as Error).message || "Failed to send transaction",
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
-  }
-
-  // Test route for the getPriceDataFromMorpherOracle function
-  // NOTE: Remove or protect this endpoint before production use.
-  @Get("test-oracle-price")
-  async testOraclePrice() {
-    try {
-      // Use default values if not provided
-      const testMarketId = "GATEIO:XRD_USDT";
-      const testNftId = MORPHER_ORACLE_NFT_ID;
-
-      this.logger.log(
-        `Testing oracle price data for market: ${testMarketId}, NFT: ${testNftId}`
-      );
-
-      const priceData = await getPriceDataFromMorpherOracle(
-        testMarketId,
-        testNftId
-      );
-
-      return priceData;
-    } catch (error) {
-      this.logger.error("Error testing oracle price data:", error);
-      throw new HttpException(
-        (error as Error).message || "Failed to retrieve oracle price data",
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }

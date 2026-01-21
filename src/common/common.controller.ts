@@ -6,6 +6,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { LsuHolderService } from "./services/lsu-holder.service";
+import { getPriceDataFromMorpherOracle } from "@/utils/oracle";
 
 @Controller("common")
 export class CommonController {
@@ -105,6 +106,26 @@ export class CommonController {
       this.logger.error("Error fetching total LSU holders:", error);
       throw new HttpException(
         (error as Error).message || "Failed to fetch total LSU holders",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get("test-oracle-price")
+  async testOraclePrice() {
+    try {
+      // Use default values if not provided
+      const testMarketId = "GATEIO:XRD_USDT";
+
+      this.logger.log(`Testing oracle price data for market: ${testMarketId}`);
+
+      const priceData = await getPriceDataFromMorpherOracle(testMarketId);
+
+      return priceData;
+    } catch (error) {
+      this.logger.error("Error testing oracle price data:", error);
+      throw new HttpException(
+        (error as Error).message || "Failed to retrieve oracle price data",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
