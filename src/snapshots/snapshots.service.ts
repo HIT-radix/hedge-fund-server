@@ -14,6 +14,7 @@ import {
   DAPP_DEFINITION_ADDRESS,
   NODE_CLAIM_NFT_ADDRESS,
   VALIDATOR_ADDRESS,
+  XRD_RESOURCE_ADDRESS,
 } from "@/constants/address";
 import Decimal from "decimal.js";
 import { LsuHolderService } from "@/common/services/lsu-holder.service";
@@ -30,6 +31,11 @@ import {
   fetchUnstakeClaimNFTData,
 } from "radix-utils";
 import { HIT_SERVER_URL } from "@/constants/endpoints";
+import {
+  getPriceDataFromMorpherOracle,
+  priceMsgToMorpherString,
+} from "@/utils/oracle";
+import { MorpherPriceData } from "@/interfaces/types.interface";
 
 @Injectable()
 export class SnapshotsService {
@@ -585,19 +591,17 @@ export class SnapshotsService {
 
   async pingFundManagerToFinishUnstakeOperation(
     claimNftId: string,
-    // morpherData: MorpherPriceData
+    morpherData: MorpherPriceData,
   ) {
-    // TODO: uncomment this when morpher api starts working again
-    // const morpherMessage = priceMsgToMorpherString(morpherData);
-    // const morpherSignature = morpherData.signature;
-    // const manifest = await get_finish_unstake_manifest(claimNftId, [
-    //   {
-    //     coinAddress: XRD_RESOURCE_ADDRESS,
-    //     message: morpherMessage,
-    //     signature: morpherSignature,
-    //   },
-    // ]);
-    const manifest = await get_finish_unstake_manifest(claimNftId, []);
+    const morpherMessage = priceMsgToMorpherString(morpherData);
+    const morpherSignature = morpherData.signature;
+    const manifest = await get_finish_unstake_manifest(claimNftId, [
+      {
+        coinAddress: XRD_RESOURCE_ADDRESS,
+        message: morpherMessage,
+        signature: morpherSignature,
+      },
+    ]);
     return await executeTransactionManifest(manifest, 10);
   }
 
@@ -884,17 +888,16 @@ export class SnapshotsService {
         `[STEP#3] Processing snapshot for date: ${snapshot.date}`,
       );
 
-      // TODO: uncomment this when morpher api starts working again
-      // const priceData = await getPriceDataFromMorpherOracle("GATEIO:XRD_USDT");
-      // this.logger.log(
-      //   `[STEP#3] Fetched price data from Morpher Oracle: ${JSON.stringify(
-      //     priceData
-      //   )}`
-      // );
+      const priceData = await getPriceDataFromMorpherOracle("GATEIO:XRD_USDT");
+      this.logger.log(
+        `[STEP#3] Fetched price data from Morpher Oracle: ${JSON.stringify(
+          priceData,
+        )}`,
+      );
 
       const pingResult = await this.pingFundManagerToFinishUnstakeOperation(
         snapshot.claim_nft_id,
-        // priceData
+        priceData,
       );
 
       this.logger.log(
