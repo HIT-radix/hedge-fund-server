@@ -102,7 +102,7 @@ export const get_finish_unstake_manifest = async (
 };
 
 export const get_fund_units_distribution_manifest = async (
-  distributions: { address: string; amount: string }[],
+  distributions: { address: string; share: string }[],
   moreLeft: boolean,
 ) => {
   const addressResult = await typescriptWallet.getAccountAddress();
@@ -127,7 +127,7 @@ export const get_fund_units_distribution_manifest = async (
           ${distributions
             .map(
               (dist) =>
-                `Address("${dist.address}") => Decimal("${dist.amount}")`,
+                `Address("${dist.address}") => Decimal("${dist.share}")`,
             )
             .join(", ")}
       )

@@ -602,7 +602,7 @@ export class SnapshotsService {
   }
 
   async pingFundManagerToDistributeFundsUnitsOperation(
-    fundsDistribution: { address: string; amount: string }[],
+    fundsDistribution: { address: string; share: string }[],
     snapshotDate: Date,
   ): Promise<string[]> {
     const BATCH_SIZE = 50;
@@ -909,22 +909,6 @@ export class SnapshotsService {
             pingResult,
           )}`,
         );
-        const txId = pingResult.txId;
-
-        const eventKeyValues = await getEventKeyValuesFromTransaction(
-          this.gatewayApi,
-          txId,
-          "LsuUnstakeCompletedEvent",
-        );
-
-        this.logger.log(
-          `[STEP#3] LsuUnstakeCompletedEvent values: ${JSON.stringify(
-            eventKeyValues,
-          )}`,
-        );
-
-        const totalFundsUnitToDistribute =
-          eventKeyValues.fund_units_to_distribute;
 
         await this.saveSnapshot(
           snapshot.date,
@@ -950,31 +934,23 @@ export class SnapshotsService {
           new Decimal(0),
         );
 
+        if (totalLSUs.lte(0)) {
+          throw new Error(
+            `[STEP#3] Total LSU amount is not positive for snapshot ${snapshot.date.toISOString()}`,
+          );
+        }
+
         this.logger.log(
           `[STEP#3] Total LSU amount across accounts: ${totalLSUs.toString()}`,
         );
 
-        let accountsShare: Record<string, string> = {};
+        const fundsDistribution: { address: string; share: string }[] = [];
 
         snapshotAccounts.forEach((account) => {
           const share = new Decimal(account.lsu_amount)
             .div(totalLSUs)
             .toString();
-          accountsShare[account.account] = share;
-        });
-
-        let fundsDistribution: { address: string; amount: string }[] = [];
-
-        snapshotAccounts.forEach((snapshot) => {
-          const share = accountsShare[snapshot.account];
-          const amount = new Decimal(totalFundsUnitToDistribute)
-            .mul(share)
-            .toDecimalPlaces(18, Decimal.ROUND_DOWN)
-            .toFixed(18);
-          fundsDistribution.push({
-            address: snapshot.account,
-            amount,
-          });
+          fundsDistribution.push({ address: account.account, share });
         });
 
         const successfullyDistributedAddresses =
