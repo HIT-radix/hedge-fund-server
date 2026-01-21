@@ -14,7 +14,6 @@ import {
   DAPP_DEFINITION_ADDRESS,
   NODE_CLAIM_NFT_ADDRESS,
   VALIDATOR_ADDRESS,
-  XRD_RESOURCE_ADDRESS,
 } from "@/constants/address";
 import Decimal from "decimal.js";
 import { LsuHolderService } from "@/common/services/lsu-holder.service";
@@ -30,11 +29,6 @@ import {
   getEventKeyValuesFromTransaction,
   fetchUnstakeClaimNFTData,
 } from "radix-utils";
-import {
-  getPriceDataFromMorpherOracle,
-  priceMsgToMorpherString,
-} from "@/utils/oracle";
-import { MorpherPriceData } from "@/interfaces/types.interface";
 import { HIT_SERVER_URL } from "@/constants/endpoints";
 
 @Injectable()
@@ -54,7 +48,7 @@ export class SnapshotsService {
     @InjectRepository(FuValue)
     private fuValueRepository: Repository<FuValue>,
     private dataSource: DataSource,
-    private readonly lsuHolderService: LsuHolderService
+    private readonly lsuHolderService: LsuHolderService,
   ) {
     this.gatewayApi = GatewayApiClient.initialize({
       networkId: RADIX_CONFIG.NETWORK_ID,
@@ -79,7 +73,7 @@ export class SnapshotsService {
    */
   private async withDbRetry<T>(
     operation: () => Promise<T>,
-    maxRetries = 3
+    maxRetries = 3,
   ): Promise<T> {
     let lastError: any;
 
@@ -88,7 +82,7 @@ export class SnapshotsService {
         // Check connection health on retries
         if (attempt > 1) {
           this.logger.log(
-            `DB operation retry attempt ${attempt}/${maxRetries}`
+            `DB operation retry attempt ${attempt}/${maxRetries}`,
           );
 
           try {
@@ -98,7 +92,7 @@ export class SnapshotsService {
           } catch (pingError) {
             this.logger.warn(
               "Database connection check failed, reconnecting:",
-              pingError
+              pingError,
             );
 
             // Force reconnection if needed
@@ -120,7 +114,7 @@ export class SnapshotsService {
         lastError = error;
         this.logger.warn(
           `DB operation failed (attempt ${attempt}/${maxRetries}):`,
-          error
+          error,
         );
 
         if (attempt < maxRetries) {
@@ -133,7 +127,7 @@ export class SnapshotsService {
 
     this.logger.error(
       `DB operation failed after ${maxRetries} attempts:`,
-      lastError
+      lastError,
     );
     throw lastError;
   }
@@ -170,7 +164,7 @@ export class SnapshotsService {
     accountsData: Record<string, string>,
     state: SnapshotState = SnapshotState.UNLOCK_STARTED,
     claimNftId?: string | null,
-    updateAccounts: boolean = true
+    updateAccounts: boolean = true,
   ): Promise<Snapshot | null> {
     try {
       const date = this.normalizeDateToSecond(rawDate);
@@ -198,14 +192,14 @@ export class SnapshotsService {
             }
             snapshot = await snapshotRepo.save(existingSnapshot);
             this.logger.log(
-              `Updated existing snapshot for date: ${date.toISOString()}`
+              `Updated existing snapshot for date: ${date.toISOString()}`,
             );
 
             // Remove existing snapshot accounts for this date only if updateAccounts is true
             if (updateAccounts) {
               await snapshotAccountRepo.delete({ date });
               this.logger.log(
-                `Removed existing snapshot accounts for date: ${date.toISOString()}`
+                `Removed existing snapshot accounts for date: ${date.toISOString()}`,
               );
             }
           } else {
@@ -217,7 +211,7 @@ export class SnapshotsService {
             });
             snapshot = await snapshotRepo.save(snapshot);
             this.logger.log(
-              `Created new snapshot for date: ${date.toISOString()}`
+              `Created new snapshot for date: ${date.toISOString()}`,
             );
           }
 
@@ -226,7 +220,7 @@ export class SnapshotsService {
             const snapshotAccounts: SnapshotAccount[] = [];
 
             for (const [accountAddress, lsuAmount] of Object.entries(
-              accountsData
+              accountsData,
             )) {
               // this.logger.log(
               //   `Creating snapshot account for address: ${accountAddress}, LSU amount: ${lsuAmount}`
@@ -247,16 +241,16 @@ export class SnapshotsService {
               this.logger.log(
                 `Saved ${
                   snapshotAccounts.length
-                } snapshot accounts for date: ${date.toISOString()}`
+                } snapshot accounts for date: ${date.toISOString()}`,
               );
             }
 
             this.logger.log(
-              `Successfully saved snapshot with ${snapshotAccounts.length} accounts`
+              `Successfully saved snapshot with ${snapshotAccounts.length} accounts`,
             );
           } else {
             this.logger.log(
-              `Successfully saved snapshot without updating accounts`
+              `Successfully saved snapshot without updating accounts`,
             );
           }
           return snapshot;
@@ -278,7 +272,7 @@ export class SnapshotsService {
   async createSnapshot(
     rawDate: Date,
     state: SnapshotState = SnapshotState.UNLOCK_STARTED,
-    claimNftId?: string | null
+    claimNftId?: string | null,
   ) {
     try {
       const date = this.normalizeDateToSecond(rawDate);
@@ -300,14 +294,14 @@ export class SnapshotsService {
           date,
           lsuData.totalLsuHolderWithAmount,
           state,
-          claimNftId
+          claimNftId,
         );
 
         if (snapshot) {
           this.logger.log(
             `Successfully created snapshot at ${date.toISOString()} with total LSU amount: ${
               lsuData.totalLsuAmount
-            }`
+            }`,
           );
         }
 
@@ -344,7 +338,7 @@ export class SnapshotsService {
         this.logger.log(
           `Fetching snapshots for exact date ${normalizedExactDate.toISOString()}$${
             claimNftId !== undefined ? ` with claim_nft_id ${claimNftId}` : ""
-          }`
+          }`,
         );
       } else {
         // Determine cutoff date precedence: explicit beforeDate > daysAgo > default(29)
@@ -368,7 +362,7 @@ export class SnapshotsService {
               daysAgo ?? (beforeDate ? "explicit" : 29)
             } days reference)$$${
               claimNftId !== undefined ? ` with claim_nft_id ${claimNftId}` : ""
-            }`
+            }`,
           );
         }
       }
@@ -407,7 +401,7 @@ export class SnapshotsService {
             : Array.isArray(state)
               ? state.join(",")
               : state
-        })`
+        })`,
       );
 
       return snapshots;
@@ -448,7 +442,7 @@ export class SnapshotsService {
           date ? date.toISOString() : "*"
         }, walletAddress=$${walletAddress || "*"}, fundSent=$${
           fundSent === undefined ? "*" : fundSent
-        }`
+        }`,
       );
 
       const accounts = await this.withDbRetry(async () => {
@@ -474,7 +468,7 @@ export class SnapshotsService {
    */
   async deleteSnapshot(
     rawDate: Date,
-    claimNftId?: string | null
+    claimNftId?: string | null,
   ): Promise<{
     success: boolean;
     deletedAccountsCount: number;
@@ -486,7 +480,7 @@ export class SnapshotsService {
       this.logger.log(
         `Attempting to delete snapshot for date: ${date.toISOString()}${
           claimNftId !== undefined ? ` with claim_nft_id: ${claimNftId}` : ""
-        }`
+        }`,
       );
 
       return await this.withDbRetry(async () => {
@@ -527,7 +521,7 @@ export class SnapshotsService {
           const deletedAccountsCount = deleteAccountsResult.affected || 0;
 
           this.logger.log(
-            `Deleted ${deletedAccountsCount} snapshot accounts for date: ${date.toISOString()}`
+            `Deleted ${deletedAccountsCount} snapshot accounts for date: ${date.toISOString()}`,
           );
 
           // Then, delete the snapshot itself
@@ -573,7 +567,7 @@ export class SnapshotsService {
   async testFetchValidatorInfo() {
     const nodeInfo = await fetchValidatorInfo(
       this.gatewayApi,
-      VALIDATOR_ADDRESS
+      VALIDATOR_ADDRESS,
     );
     return nodeInfo;
   }
@@ -590,7 +584,7 @@ export class SnapshotsService {
   }
 
   async pingFundManagerToFinishUnstakeOperation(
-    claimNftId: string
+    claimNftId: string,
     // morpherData: MorpherPriceData
   ) {
     // TODO: uncomment this when morpher api starts working again
@@ -609,21 +603,21 @@ export class SnapshotsService {
 
   async pingFundManagerToDistributeFundsUnitsOperation(
     fundsDistribution: { address: string; amount: string }[],
-    snapshotDate: Date
+    snapshotDate: Date,
   ): Promise<string[]> {
     const BATCH_SIZE = 50;
     const totalBatches = Math.ceil(fundsDistribution.length / BATCH_SIZE);
     const successfulAddresses: string[] = [];
 
     this.logger.log(
-      `Starting fund distribution for ${fundsDistribution.length} recipients in ${totalBatches} batches`
+      `Starting fund distribution for ${fundsDistribution.length} recipients in ${totalBatches} batches`,
     );
 
     for (let i = 0; i < totalBatches; i++) {
       const startIndex = i * BATCH_SIZE;
       const endIndex = Math.min(
         startIndex + BATCH_SIZE,
-        fundsDistribution.length
+        fundsDistribution.length,
       );
       const batch = fundsDistribution.slice(startIndex, endIndex);
       const isLastBatch = i === totalBatches - 1;
@@ -632,13 +626,13 @@ export class SnapshotsService {
       this.logger.log(
         `Processing batch ${i + 1}/${totalBatches} with ${
           batch.length
-        } recipients (moreLeft: ${moreLeft})`
+        } recipients (moreLeft: ${moreLeft})`,
       );
 
       try {
         const manifest = await get_fund_units_distribution_manifest(
           batch,
-          moreLeft
+          moreLeft,
         );
 
         const result = await executeTransactionManifest(manifest, 10);
@@ -646,7 +640,7 @@ export class SnapshotsService {
         if (!result.success) {
           this.logger.error(
             `Failed to execute batch ${i + 1}/${totalBatches}:`,
-            result.error
+            result.error,
           );
           throw new Error(`Batch ${i + 1} failed: ${result.txId || ""}`);
         }
@@ -660,7 +654,7 @@ export class SnapshotsService {
               date: snapshotDate,
               account: In(batchAddresses),
             },
-            { fund_units_sent: true }
+            { fund_units_sent: true },
           );
 
           this.logger.log(
@@ -668,14 +662,14 @@ export class SnapshotsService {
               updateResult.affected || 0
             } snapshot accounts as fund_units_sent for batch ${
               i + 1
-            }/${totalBatches}`
+            }/${totalBatches}`,
           );
         } catch (updateError) {
           this.logger.error(
             `Failed to update snapshot accounts for batch ${
               i + 1
             }/${totalBatches}:`,
-            updateError
+            updateError,
           );
           // Abort the entire operation if database update fails
           throw new Error(
@@ -683,7 +677,7 @@ export class SnapshotsService {
               i + 1
             }/${totalBatches}. Aborting fund distribution operation for snapshot date: ${snapshotDate}. Error: ${
               updateError.message || updateError
-            }`
+            }`,
           );
         }
 
@@ -694,19 +688,19 @@ export class SnapshotsService {
             i + 1
           }/${totalBatches} with transaction ID: ${result.txId}. Added ${
             batchAddresses.length
-          } addresses to successful list.`
+          } addresses to successful list.`,
         );
       } catch (error) {
         this.logger.error(
           `Error executing batch ${i + 1}/${totalBatches}:`,
-          error
+          error,
         );
         throw error;
       }
     }
 
     this.logger.log(
-      `Successfully completed all ${totalBatches} batches for fund distribution. Total successful addresses: ${successfulAddresses.length}`
+      `Successfully completed all ${totalBatches} batches for fund distribution. Total successful addresses: ${successfulAddresses.length}`,
     );
 
     return successfulAddresses;
@@ -724,7 +718,7 @@ export class SnapshotsService {
       // Implementation for the scheduled start unlock operation
       const node_info = await fetchValidatorInfo(
         this.gatewayApi,
-        VALIDATOR_ADDRESS
+        VALIDATOR_ADDRESS,
       );
 
       // this.logger.log("node info", node_info);
@@ -738,7 +732,7 @@ export class SnapshotsService {
 
       const snapshot = await this.createSnapshot(
         date,
-        SnapshotState.UNLOCK_STARTED
+        SnapshotState.UNLOCK_STARTED,
       );
 
       // this.logger.log("[STEP#1]:", snapshot);
@@ -749,25 +743,25 @@ export class SnapshotsService {
       if (pingResult.success) {
         this.logger.log("[STEP#1]:", pingResult);
         this.logger.log(
-          "[CRON] scheduledOperation_STEP_1 completed successfully"
+          "[CRON] scheduledOperation_STEP_1 completed successfully",
         );
         return pingResult;
       } else {
         this.logger.log("[STEP#1]: delete snapshot");
         await this.deleteSnapshot(snapshot.date, snapshot.claim_nft_id);
         this.logger.warn(
-          "[CRON] scheduledOperation_STEP_1 failed, snapshot deleted"
+          "[CRON] scheduledOperation_STEP_1 failed, snapshot deleted",
         );
         await this.pingErrorToTg(
           `[CRON] scheduledOperation_STEP_1 failed, snapshot deleted ${
             pingResult.txId || ""
-          }`
+          }`,
         );
       }
     } catch (error) {
       this.logger.error("[CRON] scheduledOperation_STEP_1 failed:", error);
       await this.pingErrorToTg(
-        `[CRON] scheduledOperation_STEP_1 failed: ${error.message || error}`
+        `[CRON] scheduledOperation_STEP_1 failed: ${error.message || error}`,
       );
       throw error;
     }
@@ -800,7 +794,7 @@ export class SnapshotsService {
 
       const pingResult = await this.pingFundManagerToStartUnstakeOperation();
       this.logger.log(
-        `[STEP#2] Unstake transaction result: ${JSON.stringify(pingResult)}`
+        `[STEP#2] Unstake transaction result: ${JSON.stringify(pingResult)}`,
       );
 
       if (pingResult.success) {
@@ -810,7 +804,7 @@ export class SnapshotsService {
         const eventKeyValues = await getEventKeyValuesFromTransaction(
           this.gatewayApi,
           txId,
-          "LsuUnstakeStartedEvent"
+          "LsuUnstakeStartedEvent",
         );
 
         const claimNftId = eventKeyValues.claim_nft_id;
@@ -822,10 +816,10 @@ export class SnapshotsService {
           {},
           SnapshotState.UNSTAKE_STARTED,
           claimNftId,
-          false
+          false,
         );
         this.logger.log(
-          "[CRON] scheduledOperation_STEP_2 completed successfully"
+          "[CRON] scheduledOperation_STEP_2 completed successfully",
         );
         return updatedSnapshot;
       } else {
@@ -835,7 +829,7 @@ export class SnapshotsService {
     } catch (error) {
       this.logger.error("[CRON] scheduledOperation_STEP_2 failed:", error);
       await this.pingErrorToTg(
-        `[CRON] scheduledOperation_STEP_2 failed: ${error.message || error}`
+        `[CRON] scheduledOperation_STEP_2 failed: ${error.message || error}`,
       );
       throw error;
     }
@@ -870,7 +864,7 @@ export class SnapshotsService {
       const unstakeClaimData = await fetchUnstakeClaimNFTData(
         this.gatewayApi,
         NODE_CLAIM_NFT_ADDRESS,
-        [snapshot.claim_nft_id]
+        [snapshot.claim_nft_id],
       );
 
       const readyUnstakes = Object.values(unstakeClaimData).map((nft) => {
@@ -881,13 +875,13 @@ export class SnapshotsService {
       if (readyUnstakes.length === 0 || !readyUnstakes[0]) {
         this.logger.log(
           "[STEP#3] Unstake not ready yet for claim NFT ID:",
-          snapshot.claim_nft_id
+          snapshot.claim_nft_id,
         );
         return null;
       }
 
       this.logger.log(
-        `[STEP#3] Processing snapshot for date: ${snapshot.date}`
+        `[STEP#3] Processing snapshot for date: ${snapshot.date}`,
       );
 
       // TODO: uncomment this when morpher api starts working again
@@ -899,34 +893,34 @@ export class SnapshotsService {
       // );
 
       const pingResult = await this.pingFundManagerToFinishUnstakeOperation(
-        snapshot.claim_nft_id
+        snapshot.claim_nft_id,
         // priceData
       );
 
       this.logger.log(
         `[STEP#3] Finish unstake transaction result: ${JSON.stringify(
-          pingResult
-        )}`
+          pingResult,
+        )}`,
       );
 
       if (pingResult.success) {
         this.logger.log(
           `[STEP#3] Finish unstake transaction successful: ${JSON.stringify(
-            pingResult
-          )}`
+            pingResult,
+          )}`,
         );
         const txId = pingResult.txId;
 
         const eventKeyValues = await getEventKeyValuesFromTransaction(
           this.gatewayApi,
           txId,
-          "LsuUnstakeCompletedEvent"
+          "LsuUnstakeCompletedEvent",
         );
 
         this.logger.log(
           `[STEP#3] LsuUnstakeCompletedEvent values: ${JSON.stringify(
-            eventKeyValues
-          )}`
+            eventKeyValues,
+          )}`,
         );
 
         const totalFundsUnitToDistribute =
@@ -937,7 +931,7 @@ export class SnapshotsService {
           {},
           SnapshotState.UNSTAKED,
           null,
-          false
+          false,
         );
 
         this.logger.log("[STEP#3] snapshot saved as UNSTAKED");
@@ -948,16 +942,16 @@ export class SnapshotsService {
         });
 
         this.logger.log(
-          `[STEP#3] Fetched ${snapshotAccounts.length} snapshot accounts needing fund distribution`
+          `[STEP#3] Fetched ${snapshotAccounts.length} snapshot accounts needing fund distribution`,
         );
 
         const totalLSUs = snapshotAccounts.reduce(
           (acc, account) => new Decimal(acc).add(account.lsu_amount),
-          new Decimal(0)
+          new Decimal(0),
         );
 
         this.logger.log(
-          `[STEP#3] Total LSU amount across accounts: ${totalLSUs.toString()}`
+          `[STEP#3] Total LSU amount across accounts: ${totalLSUs.toString()}`,
         );
 
         let accountsShare: Record<string, string> = {};
@@ -986,17 +980,17 @@ export class SnapshotsService {
         const successfullyDistributedAddresses =
           await this.pingFundManagerToDistributeFundsUnitsOperation(
             fundsDistribution,
-            snapshot.date
+            snapshot.date,
           );
 
         if (
           successfullyDistributedAddresses.length !== fundsDistribution.length
         ) {
           this.logger.warn(
-            `[STEP#3] Not all funds were successfully distributed. Expected: ${fundsDistribution.length}, Actual: ${successfullyDistributedAddresses.length}`
+            `[STEP#3] Not all funds were successfully distributed. Expected: ${fundsDistribution.length}, Actual: ${successfullyDistributedAddresses.length}`,
           );
           throw new Error(
-            "[STEP#3] Not all funds were successfully distributed"
+            "[STEP#3] Not all funds were successfully distributed",
           );
         }
 
@@ -1005,10 +999,10 @@ export class SnapshotsService {
           {},
           SnapshotState.DISTRIBUTED,
           null,
-          false
+          false,
         );
         this.logger.log(
-          "[CRON] scheduledOperation_STEP_3 completed successfully"
+          "[CRON] scheduledOperation_STEP_3 completed successfully",
         );
         return successfullyDistributedAddresses;
       } else {
@@ -1018,7 +1012,7 @@ export class SnapshotsService {
     } catch (error) {
       this.logger.error("[CRON] scheduledOperation_STEP_3 failed:", error);
       await this.pingErrorToTg(
-        `[CRON] scheduledOperation_STEP_3 failed: ${error.message || error}`
+        `[CRON] scheduledOperation_STEP_3 failed: ${error.message || error}`,
       );
       throw error;
     }
@@ -1045,7 +1039,7 @@ export class SnapshotsService {
       if (!res.ok) {
         const body = await res.text();
         this.logger.warn(
-          `pingErrorToTg failed with status ${res.status}: ${body}`
+          `pingErrorToTg failed with status ${res.status}: ${body}`,
         );
         return null;
       }

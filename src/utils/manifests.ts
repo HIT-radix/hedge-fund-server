@@ -7,7 +7,7 @@ import { typescriptWallet } from "@/wallet/config";
 import Decimal from "decimal.js";
 
 export const get_start_unlock_owner_stake_units_manifest = async (
-  amount: string
+  amount: string,
 ) => {
   const addressResult = await typescriptWallet.getAccountAddress();
 
@@ -55,7 +55,7 @@ export const get_start_unstake_manifest = async () => {
 
 export const get_finish_unstake_manifest = async (
   claimNftId: string,
-  morpherData: { coinAddress: string; message: string; signature: string }[]
+  morpherData: { coinAddress: string; message: string; signature: string }[],
 ) => {
   const addressResult = await typescriptWallet.getAccountAddress();
 
@@ -103,7 +103,7 @@ export const get_finish_unstake_manifest = async (
 
 export const get_fund_units_distribution_manifest = async (
   distributions: { address: string; amount: string }[],
-  moreLeft: boolean
+  moreLeft: boolean,
 ) => {
   const addressResult = await typescriptWallet.getAccountAddress();
 
@@ -127,7 +127,7 @@ export const get_fund_units_distribution_manifest = async (
           ${distributions
             .map(
               (dist) =>
-                `Address("${dist.address}") => Decimal("${dist.amount}")`
+                `Address("${dist.address}") => Decimal("${dist.amount}")`,
             )
             .join(", ")}
       )
@@ -137,7 +137,7 @@ export const get_fund_units_distribution_manifest = async (
 
 export const get_buyback_airdrop_manifest = async (
   tokenAddress: string,
-  airdropData: { address: string; amount: string }[]
+  airdropData: { address: string; amount: string }[],
 ) => {
   const addressResult = await typescriptWallet.getAccountAddress();
   if (addressResult.isErr()) {
@@ -174,7 +174,7 @@ export const get_buyback_airdrop_manifest = async (
               .map(
                 (item) => `Address("${item.address}") => Enum<0u8>(
                 Decimal("${item.amount}")
-            )`
+            )`,
               )
               .join(",\n            ")}
         )
@@ -191,7 +191,7 @@ export const get_buyback_airdrop_manifest = async (
 };
 
 export const set_defi_protocols_percentages_manifest = async (
-  percentages: { protocol: string; percentage: number }[]
+  percentages: { protocol: string; percentage: number }[],
 ) => {
   const addressResult = await typescriptWallet.getAccountAddress();
 

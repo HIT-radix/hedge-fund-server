@@ -18,7 +18,7 @@ export const BN = (value: string | number) => new Decimal(value);
 const retryPromiseAll = async (
   promises: Promise<any>[],
   retries = 3,
-  delay = 1000
+  delay = 1000,
 ) => {
   for (let i = 0; i < retries; i++) {
     try {
@@ -26,7 +26,7 @@ const retryPromiseAll = async (
     } catch (error) {
       if (i === retries - 1) throw error;
       await new Promise((resolve) =>
-        setTimeout(resolve, delay * Math.pow(2, i))
+        setTimeout(resolve, delay * Math.pow(2, i)),
       );
     }
   }
@@ -36,7 +36,7 @@ export const checkResourceInUsersFungibleAssets = async (
   usersAddresses: string[],
   fungible_resource_to_check: string,
   gatewayApi: GatewayApiClient,
-  ledgerState?: LedgerStateSelector
+  ledgerState?: LedgerStateSelector,
 ) => {
   try {
     const allPromises = usersAddresses.map((address) =>
@@ -46,7 +46,7 @@ export const checkResourceInUsersFungibleAssets = async (
           resource_address: fungible_resource_to_check,
           at_ledger_state: ledgerState,
         },
-      })
+      }),
     );
 
     const allResponses = (await retryPromiseAll(allPromises)).flat();
@@ -76,7 +76,7 @@ export const checkResourceInUsersFungibleAssets = async (
  */
 export const executeTransactionManifest = async (
   manifest: string,
-  lockFee: number = 10
+  lockFee: number = 10,
 ): Promise<{ success: boolean; txId?: string; error?: string }> => {
   // First attempt
   const first = await attemptToSendTxOnChain(manifest, lockFee);
@@ -90,7 +90,7 @@ export const executeTransactionManifest = async (
 
 const attemptToSendTxOnChain = async (
   manifest: string,
-  lockFee: number = 10
+  lockFee: number = 10,
 ): Promise<{
   success: boolean;
   txId?: string;
@@ -108,7 +108,7 @@ const attemptToSendTxOnChain = async (
           error: (e as Error).message || "Failed to send transaction",
           txId,
         } as { success: false; error: string; txId?: string };
-      }
+      },
     );
     return result;
   } catch (error) {
