@@ -7,12 +7,27 @@ import {
 } from "@nestjs/common";
 import { LsuHolderService } from "./services/lsu-holder.service";
 import { getPriceDataFromMorpherOracle } from "@/utils/oracle";
+import { fetchValidatorInfo } from "radix-utils";
+import {
+  DAPP_DEFINITION_ADDRESS,
+  VALIDATOR_ADDRESS,
+} from "@/constants/address";
+import { GatewayApiClient } from "@radixdlt/babylon-gateway-api-sdk";
+import { RADIX_CONFIG } from "@/config/radix.config";
 
 @Controller("common")
 export class CommonController {
   private readonly logger = new Logger(CommonController.name);
+  private readonly gatewayApi: GatewayApiClient;
 
-  constructor(private readonly lsuHolderService: LsuHolderService) {}
+  constructor(private readonly lsuHolderService: LsuHolderService) {
+    this.gatewayApi = GatewayApiClient.initialize({
+      networkId: RADIX_CONFIG.NETWORK_ID,
+      applicationName: RADIX_CONFIG.APPLICATION_NAME,
+      applicationVersion: RADIX_CONFIG.APPLICATION_VERSION,
+      applicationDappDefinitionAddress: DAPP_DEFINITION_ADDRESS,
+    });
+  }
 
   /**
    * Fetch LSU holders from Weft Collaterals
@@ -126,6 +141,32 @@ export class CommonController {
       this.logger.error("Error testing oracle price data:", error);
       throw new HttpException(
         (error as Error).message || "Failed to retrieve oracle price data",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get("fetch-node-info")
+  async testFetchValidatorInfo() {
+    try {
+      const validatorInfo = await fetchValidatorInfo(
+        this.gatewayApi,
+        VALIDATOR_ADDRESS,
+      );
+
+      return {
+        success: true,
+        message: "Validator info retrieved successfully",
+        data: validatorInfo,
+        meta: {
+          timestamp: new Date().toISOString(),
+          description: "Validator information from the Radix network",
+        },
+      };
+    } catch (error) {
+      this.logger.error("Error testing fetchValidatorInfo:", error);
+      throw new HttpException(
+        (error as Error).message || "Failed to retrieve validator info",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

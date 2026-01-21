@@ -32,157 +32,123 @@ export class SnapshotsController {
           error: error.message,
           timestamp: new Date().toISOString(),
         },
-        HttpStatus.SERVICE_UNAVAILABLE
+        HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
   }
 
-  @Get("create-snapshot")
-  async createSnapshot() {
-    try {
-      const snapshot = await this.snapshotsService.createSnapshot(new Date());
+  // @Get("older-snapshots")
+  // async getOlderSnapshots(
+  //   @Query("beforeDate") beforeDateStr?: string,
+  //   @Query("daysAgo") daysAgoStr?: string,
+  //   @Query("claimNftId") claimNftId?: string,
+  //   @Query("claimNftIdNull") claimNftIdNull?: string // if provided (any value), we filter for NULL claim_nft_id
+  // ) {
+  //   try {
+  //     let beforeDate: Date | undefined = undefined;
+  //     if (beforeDateStr) {
+  //       const d = new Date(beforeDateStr);
+  //       if (isNaN(d.getTime())) {
+  //         throw new HttpException(
+  //           "Invalid beforeDate. Use ISO string.",
+  //           HttpStatus.BAD_REQUEST
+  //         );
+  //       }
+  //       beforeDate = d;
+  //     }
 
-      if (!snapshot) {
-        throw new HttpException(
-          "Failed to create snapshot - no data available",
-          HttpStatus.NOT_FOUND
-        );
-      }
+  //     let daysAgo: number | undefined = undefined;
+  //     if (daysAgoStr) {
+  //       const parsed = Number(daysAgoStr);
+  //       if (isNaN(parsed) || parsed < 0) {
+  //         throw new HttpException(
+  //           "Invalid daysAgo. Provide a non-negative number.",
+  //           HttpStatus.BAD_REQUEST
+  //         );
+  //       }
+  //       daysAgo = parsed;
+  //     }
 
-      return {
-        success: true,
-        message: "Snapshot created successfully",
-        date: snapshot.date.toISOString(),
-        data: {
-          date: snapshot.date,
-          state: snapshot.state,
-          claim_nft_id: snapshot.claim_nft_id,
-        },
-      };
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-      throw new HttpException(
-        "Failed to create snapshot",
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
-  }
+  //     // Determine claim nft id filter logic
+  //     let claimFilter: string | null | undefined = undefined;
+  //     if (claimNftIdNull !== undefined) {
+  //       claimFilter = null; // explicit request for NULLs
+  //     } else if (claimNftId !== undefined) {
+  //       claimFilter = claimNftId;
+  //     }
 
-  @Get("older-snapshots")
-  async getOlderSnapshots(
-    @Query("beforeDate") beforeDateStr?: string,
-    @Query("daysAgo") daysAgoStr?: string,
-    @Query("claimNftId") claimNftId?: string,
-    @Query("claimNftIdNull") claimNftIdNull?: string // if provided (any value), we filter for NULL claim_nft_id
-  ) {
-    try {
-      let beforeDate: Date | undefined = undefined;
-      if (beforeDateStr) {
-        const d = new Date(beforeDateStr);
-        if (isNaN(d.getTime())) {
-          throw new HttpException(
-            "Invalid beforeDate. Use ISO string.",
-            HttpStatus.BAD_REQUEST
-          );
-        }
-        beforeDate = d;
-      }
+  //     const snapshots = await this.snapshotsService.getSnapshotsFromDb({
+  //       beforeDate,
+  //       daysAgo,
+  //       claimNftId: claimFilter,
+  //     });
+  //     return {
+  //       success: true,
+  //       message: "Older snapshots retrieved successfully",
+  //       data: snapshots,
+  //       meta: {
+  //         beforeDate: beforeDate?.toISOString() ?? null,
+  //         daysAgo: daysAgo ?? null,
+  //         claimNftId: claimFilter === undefined ? undefined : claimFilter, // could be null
+  //       },
+  //     };
+  //   } catch (error) {
+  //     this.logger.error("Error fetching older snapshots:", error);
+  //     if (error instanceof HttpException) throw error;
+  //     throw new HttpException(
+  //       "Failed to fetch older snapshots",
+  //       HttpStatus.INTERNAL_SERVER_ERROR
+  //     );
+  //   }
+  // }
 
-      let daysAgo: number | undefined = undefined;
-      if (daysAgoStr) {
-        const parsed = Number(daysAgoStr);
-        if (isNaN(parsed) || parsed < 0) {
-          throw new HttpException(
-            "Invalid daysAgo. Provide a non-negative number.",
-            HttpStatus.BAD_REQUEST
-          );
-        }
-        daysAgo = parsed;
-      }
+  // @Get("delete-snapshot")
+  // async deleteSnapshot() {
+  //   try {
+  //     const date = new Date("2025-08-26 19:04:02");
+  //     if (isNaN(date.getTime())) {
+  //       throw new HttpException(
+  //         "Invalid date format. Use ISO string format.",
+  //         HttpStatus.BAD_REQUEST
+  //       );
+  //     }
 
-      // Determine claim nft id filter logic
-      let claimFilter: string | null | undefined = undefined;
-      if (claimNftIdNull !== undefined) {
-        claimFilter = null; // explicit request for NULLs
-      } else if (claimNftId !== undefined) {
-        claimFilter = claimNftId;
-      }
+  //     // Determine claim nft id filter logic
+  //     let claimFilter: string | null | undefined = undefined;
 
-      const snapshots = await this.snapshotsService.getSnapshotsFromDb({
-        beforeDate,
-        daysAgo,
-        claimNftId: claimFilter,
-      });
-      return {
-        success: true,
-        message: "Older snapshots retrieved successfully",
-        data: snapshots,
-        meta: {
-          beforeDate: beforeDate?.toISOString() ?? null,
-          daysAgo: daysAgo ?? null,
-          claimNftId: claimFilter === undefined ? undefined : claimFilter, // could be null
-        },
-      };
-    } catch (error) {
-      this.logger.error("Error fetching older snapshots:", error);
-      if (error instanceof HttpException) throw error;
-      throw new HttpException(
-        "Failed to fetch older snapshots",
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
-  }
+  //     const result = await this.snapshotsService.deleteSnapshot(
+  //       date,
+  //       claimFilter
+  //     );
 
-  @Get("delete-snapshot")
-  async deleteSnapshot() {
-    try {
-      const date = new Date("2025-08-26 19:04:02");
-      if (isNaN(date.getTime())) {
-        throw new HttpException(
-          "Invalid date format. Use ISO string format.",
-          HttpStatus.BAD_REQUEST
-        );
-      }
+  //     if (!result.success) {
+  //       throw new HttpException(result.message, HttpStatus.NOT_FOUND);
+  //     }
 
-      // Determine claim nft id filter logic
-      let claimFilter: string | null | undefined = undefined;
+  //     return {
+  //       success: true,
+  //       message: result.message,
+  //       data: {
+  //         date: date.toISOString(),
+  //         deletedAccountsCount: result.deletedAccountsCount,
+  //         claimNftId: claimFilter === undefined ? undefined : claimFilter,
+  //       },
+  //     };
+  //   } catch (error) {
+  //     this.logger.error("Error deleting snapshot:", error);
+  //     if (error instanceof HttpException) throw error;
+  //     throw new HttpException(
+  //       "Failed to delete snapshot",
+  //       HttpStatus.INTERNAL_SERVER_ERROR
+  //     );
+  //   }
+  // }
 
-      const result = await this.snapshotsService.deleteSnapshot(
-        date,
-        claimFilter
-      );
-
-      if (!result.success) {
-        throw new HttpException(result.message, HttpStatus.NOT_FOUND);
-      }
-
-      return {
-        success: true,
-        message: result.message,
-        data: {
-          date: date.toISOString(),
-          deletedAccountsCount: result.deletedAccountsCount,
-          claimNftId: claimFilter === undefined ? undefined : claimFilter,
-        },
-      };
-    } catch (error) {
-      this.logger.error("Error deleting snapshot:", error);
-      if (error instanceof HttpException) throw error;
-      throw new HttpException(
-        "Failed to delete snapshot",
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
-  }
-
-  // Test route for the scheduled start unlock operation
   // NOTE: Remove or protect this endpoint before production use.
-  @Get("test-scheduled-step-1")
+  @Get("trigger-step-1")
   async testScheduledStep1() {
     try {
-      this.logger.log("Testing scheduledStartUnlockOperation...");
+      this.logger.log("Triggering step1 manually...");
 
       const result = await this.snapshotsService.scheduledOperation_STEP_1();
 
@@ -196,44 +162,37 @@ export class SnapshotsController {
       throw new HttpException(
         (error as Error).message ||
           "Failed to execute scheduled start unlock operation",
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  // Test route for the scheduled operation step 2
   // NOTE: Remove or protect this endpoint before production use.
-  @Get("test-scheduled-step-2")
+  @Get("trigger-step-2")
   async testScheduledStep2() {
     try {
-      this.logger.log("Testing scheduledOperation_STEP_2...");
-
+      this.logger.log("Triggering step2 manually...");
       const result = await this.snapshotsService.scheduledOperation_STEP_2();
 
       return {
         success: true,
         message: "Scheduled operation step 2 completed successfully",
         data: result,
-        meta: {
-          snapshotsFound: result,
-          description:
-            "Fetches snapshots from 1 day ago with UNLOCK_STARTED state",
-        },
       };
     } catch (error) {
       this.logger.error("Error testing scheduledOperation_STEP_2:", error);
       throw new HttpException(
         (error as Error).message ||
           "Failed to execute scheduled operation step 2",
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  @Get("test-scheduled-step-3")
+  @Get("trigger-step-3")
   async testScheduledStep3() {
     try {
-      this.logger.log("Testing scheduledOperation_STEP_3...");
+      this.logger.log("Triggering step3 manually...");
 
       const result = await this.snapshotsService.scheduledOperation_STEP_3();
 
@@ -248,34 +207,6 @@ export class SnapshotsController {
         (error as Error).message ||
           "Failed to execute scheduled operation step 3",
         HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  // Test route for the testFetchValidatorInfo function
-  // NOTE: Remove or protect this endpoint before production use.
-  @Get("fetch-node-info")
-  async testFetchValidatorInfo() {
-    try {
-      this.logger.log("Testing fetchValidatorInfo...");
-
-      const validatorInfo =
-        await this.snapshotsService.testFetchValidatorInfo();
-
-      return {
-        success: true,
-        message: "Validator info retrieved successfully",
-        data: validatorInfo,
-        meta: {
-          timestamp: new Date().toISOString(),
-          description: "Validator information from the Radix network",
-        },
-      };
-    } catch (error) {
-      this.logger.error("Error testing fetchValidatorInfo:", error);
-      throw new HttpException(
-        (error as Error).message || "Failed to retrieve validator info",
-        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
@@ -302,7 +233,7 @@ export class SnapshotsController {
       this.logger.error("Error resetting stuck funds units:", error);
       throw new HttpException(
         (error as Error).message || "Failed to reset stuck funds units",
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
