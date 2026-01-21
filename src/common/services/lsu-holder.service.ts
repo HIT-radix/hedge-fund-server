@@ -167,9 +167,13 @@ export class LsuHolderService {
 
       nonFungibleLocations.forEach((nftLocation) => {
         if (nftLocation.owning_vault_global_ancestor_address) {
-          usersWithLsuCollateral[
-            nftLocation.owning_vault_global_ancestor_address
-          ] = nftIdsWithLsuCollateral[nftLocation.non_fungible_id];
+          const owner = nftLocation.owning_vault_global_ancestor_address;
+          const existing = usersWithLsuCollateral[owner] ?? "0";
+          const updated = new Decimal(existing)
+            .plus(nftIdsWithLsuCollateral[nftLocation.non_fungible_id])
+            .toString();
+
+          usersWithLsuCollateral[owner] = updated;
           totalLsuAmount = totalLsuAmount.plus(
             nftIdsWithLsuCollateral[nftLocation.non_fungible_id]
           );
