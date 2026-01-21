@@ -842,10 +842,10 @@ export class SnapshotsService {
   }
 
   /**
-   * Scheduled operation STEP 3 - Runs every saturday at 23:00 UTC
+   * Scheduled operation STEP 3 - Runs every sunday at 11:30 UTC
    * Finishes unstake operation and distributes funds
    */
-  @Cron("0 0 23 * * 6", { timeZone: "UTC" })
+  @Cron("0 30 11 * * 0", { timeZone: "UTC" })
   async scheduledOperation_STEP_3() {
     try {
       this.logger.log("[CRON] Starting scheduledOperation_STEP_3");
