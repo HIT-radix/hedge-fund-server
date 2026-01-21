@@ -217,3 +217,12 @@ export const set_defi_protocols_percentages_manifest = async (
       )
     ;`;
 };
+
+export const getFundUnitValueManifest = () => {
+  return `
+    CALL_METHOD
+      Address("${FUND_MANAGER_COMPONENT}")
+      "fund_unit_value"
+    ;
+  `;
+};
