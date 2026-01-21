@@ -14,7 +14,7 @@ describe("fetchPriceDataFromOracle", () => {
   it("returns valid price data for the Morpher oracle", async () => {
     if (!process.env.MNEMONIC || !process.env.NETWORK_NAME) {
       throw new Error(
-        "MNEMONIC and NETWORK_NAME env vars must be set for this test"
+        "MNEMONIC and NETWORK_NAME env vars must be set for this test",
       );
     }
 
@@ -27,7 +27,7 @@ describe("fetchPriceDataFromOracle", () => {
     const { oracleRequest } = generateMorpherOracleMessage(
       MARKET_ID,
       MORPHER_ORACLE_NFT_ID,
-      privateKey
+      privateKey,
     );
 
     const priceData = await fetchPriceDataFromOracle(oracleRequest);
@@ -40,6 +40,6 @@ describe("fetchPriceDataFromOracle", () => {
     const firstEntry = priceData.data[0];
     expect(firstEntry.marketId).toBe(MARKET_ID);
     expect(Number.parseFloat(firstEntry.price)).not.toBeNaN();
-    expect(firstEntry.dataTimestamp).toBeGreaterThan(0);
+    expect(firstEntry.createdAt).toBeGreaterThan(0);
   });
 });
