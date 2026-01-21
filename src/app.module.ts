@@ -6,7 +6,6 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { SnapshotsModule } from "./snapshots/snapshots.module";
-import { AirdropsModule } from "./airdrops/airdrops.module";
 import { AdminModule } from "./admin/admin.module";
 import { CommonModule } from "./common/common.module";
 
@@ -42,9 +41,7 @@ const dbImports = dbEnabled
     ]
   : [];
 
-const dbFeatureModules = dbEnabled
-  ? [SnapshotsModule, AirdropsModule, AdminModule]
-  : [];
+const dbFeatureModules = dbEnabled ? [SnapshotsModule, AdminModule] : [];
 
 @Module({
   imports: [
