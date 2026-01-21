@@ -182,4 +182,28 @@ export class SnapshotsController {
       );
     }
   }
+
+  @Get()
+  async getAllSnapshots(@Query("secret") secret?: string) {
+    try {
+      this.validateAdminSecret(secret);
+      this.logger.log("Fetching all snapshots with accounts...");
+
+      const snapshots = await this.snapshotsService.getSnapshotsFromDb({
+        includeAccounts: true,
+      });
+
+      return {
+        success: true,
+        count: snapshots.length,
+        data: snapshots,
+      };
+    } catch (error) {
+      this.logger.error("Error fetching snapshots:", error);
+      throw new HttpException(
+        (error as Error).message || "Failed to fetch snapshots",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

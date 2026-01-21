@@ -329,10 +329,17 @@ export class SnapshotsService {
     daysAgo?: number; // number of days to subtract from "now" to form cutoff (exclusive)
     claimNftId?: string | null; // optional filter on claim_nft_id (null means snapshots where claim_nft_id IS NULL)
     state?: SnapshotState | SnapshotState[]; // optional state filter (single or multiple)
+    includeAccounts?: boolean; // whether to include snapshot account relations
   }): Promise<Snapshot[]> {
     try {
-      const { exactDate, beforeDate, daysAgo, claimNftId, state } =
-        options || {};
+      const {
+        exactDate,
+        beforeDate,
+        daysAgo,
+        claimNftId,
+        state,
+        includeAccounts,
+      } = options || {};
 
       // Build where clause
       const where: any = {};
@@ -389,6 +396,7 @@ export class SnapshotsService {
         return await this.snapshotRepository.find({
           where,
           order: { date: "DESC" },
+          relations: includeAccounts ? ["accounts"] : undefined,
         });
       });
 
