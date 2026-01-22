@@ -153,12 +153,21 @@ export class SnapshotsController {
   }
 
   @Get("take-fund-unit-snapshot")
-  async takeFundUnitValueSnapshot(@Query("secret") secret?: string) {
+  async takeFundUnitValueSnapshot(
+    @Query("secret") secret?: string,
+    @Query("forceupdate") forceupdate?: string,
+  ) {
     try {
       this.validateAdminSecret(secret);
-      this.logger.log("Taking fund unit value snapshot manually...");
+      const forceUpdateBool = forceupdate === "true";
+      this.logger.log(
+        `Taking fund unit value snapshot manually... forceUpdate=${forceUpdateBool}`,
+      );
 
-      const result = await this.snapshotsService.takeSnapshotOfFundUnitValue();
+      const result =
+        await this.snapshotsService.takeSnapshotOfFundUnitValue(
+          forceUpdateBool,
+        );
 
       if (!result) {
         throw new HttpException(
