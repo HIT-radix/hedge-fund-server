@@ -18,12 +18,17 @@ import {
 } from "@/constants/address";
 import Decimal from "decimal.js";
 import { LsuHolderService } from "@/common/services/lsu-holder.service";
-import { executeTransactionManifest, getFundUnitValue } from "@/utils/helpers";
+import {
+  executeTransactionManifest,
+  fetchHedgeFundProtocolsList,
+  getFundUnitValue,
+} from "@/utils/helpers";
 import {
   get_finish_unstake_manifest,
   get_fund_units_distribution_manifest,
   get_start_unlock_owner_stake_units_manifest,
   get_start_unstake_manifest,
+  get_update_defi_protocols_values_manifest,
 } from "@/utils/manifests";
 import {
   fetchValidatorInfo,
@@ -626,6 +631,25 @@ export class SnapshotsService {
     return await executeTransactionManifest(manifest, 10);
   }
 
+  async pingFundManagerToUpdateProtocolsValuesOperation(
+    protocolNames: string[],
+    morpherData: MorpherPriceData,
+  ) {
+    const morpherMessage = priceMsgToMorpherString(morpherData);
+    const morpherSignature = morpherData.signature;
+    const manifest = await get_update_defi_protocols_values_manifest(
+      protocolNames,
+      [
+        {
+          coinAddress: XRD_RESOURCE_ADDRESS,
+          message: morpherMessage,
+          signature: morpherSignature,
+        },
+      ],
+    );
+    return await executeTransactionManifest(manifest, 10);
+  }
+
   async pingFundManagerToDistributeFundsUnitsOperation(
     fundsDistribution: { address: string; share: string }[],
     snapshotDate: Date,
@@ -1063,9 +1087,32 @@ export class SnapshotsService {
     }
   }
 
-  @Cron("0 0 22 * * *", { timeZone: "UTC" })
-  async takeSnapshotOfFundUnitValue(): Promise<FuValue | undefined> {
+  async takeSnapshotOfFundUnitValue(
+    forceProtocolsUpdate: boolean = false,
+  ): Promise<FuValue | undefined> {
     try {
+      if (forceProtocolsUpdate) {
+        const priceData =
+          await getPriceDataFromMorpherOracle("GATEIO:XRD_USDT");
+        const protocolsNames = await fetchHedgeFundProtocolsList(
+          this.gatewayApi,
+        );
+        const pingResult =
+          await this.pingFundManagerToUpdateProtocolsValuesOperation(
+            protocolsNames,
+            priceData,
+          );
+        if (!pingResult.success) {
+          this.logger.warn("Failed to update DeFi protocols values");
+          await this.pingErrorToTg(
+            `[FundUnitValue] Failed to update DeFi protocols values ${
+              pingResult.txId || ""
+            }`,
+          );
+          return undefined;
+        }
+        this.logger.log("DeFi protocols values updated successfully");
+      }
       const fundUnitValues = await getFundUnitValue(this.gatewayApi);
       if (!fundUnitValues) {
         this.logger.warn("Failed to fetch fund unit values");
