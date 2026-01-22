@@ -426,6 +426,27 @@ export class SnapshotsService {
   }
 
   /**
+   * Fetch all fund unit value snapshots ordered by time descending
+   */
+  async getFundUnitValues(): Promise<FuValue[]> {
+    try {
+      this.logger.log("Fetching all fund unit value records");
+
+      const values = await this.withDbRetry(async () => {
+        return await this.fuValueRepository.find({
+          order: { time: "DESC" },
+        });
+      });
+
+      this.logger.log(`Fetched ${values.length} fund unit value records`);
+      return values;
+    } catch (error) {
+      this.logger.error("Error fetching fund unit value records:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Fetch snapshot accounts with optional filters.
    * If no filters are provided, returns all snapshot accounts.
    * @param walletAddress (optional) filter by a specific wallet/account address

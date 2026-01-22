@@ -183,6 +183,30 @@ export class SnapshotsController {
     }
   }
 
+  @Get("fund-unit-values")
+  async getFundUnitValues(@Query("secret") secret?: string) {
+    try {
+      this.validateAdminSecret(secret);
+      this.logger.log("Fetching all fund unit value records...");
+
+      const values = await this.snapshotsService.getFundUnitValues();
+
+      return {
+        success: true,
+        count: values.length,
+        data: values,
+        meta: { timestamp: new Date().toISOString() },
+      };
+    } catch (error) {
+      this.logger.error("Error fetching fund unit value records:", error);
+      if (error instanceof HttpException) throw error;
+      throw new HttpException(
+        (error as Error).message || "Failed to fetch fund unit value records",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Get()
   async getAllSnapshots(@Query("secret") secret?: string) {
     try {
