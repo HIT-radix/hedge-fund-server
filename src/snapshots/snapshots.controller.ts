@@ -183,7 +183,7 @@ export class SnapshotsController {
     }
   }
 
-  @Get("fund-unit-values")
+  @Get("fund-unit-historic-values")
   async getFundUnitValues(@Query("secret") secret?: string) {
     try {
       this.validateAdminSecret(secret);
