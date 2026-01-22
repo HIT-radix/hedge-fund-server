@@ -1004,6 +1004,14 @@ export class SnapshotsService {
           null,
           false,
         );
+
+        // Capture fund unit net value after full distribution completes
+        const fundUnitSnapshot = await this.takeSnapshotOfFundUnitValue();
+        if (!fundUnitSnapshot) {
+          this.logger.warn(
+            "[STEP#3] Fund unit value snapshot could not be stored after distribution",
+          );
+        }
         this.logger.log(
           "[CRON] scheduledOperation_STEP_3 completed successfully",
         );
