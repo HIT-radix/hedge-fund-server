@@ -212,3 +212,39 @@ export const get_fund_unit_value_manifest = () => {
     ;
   `;
 };
+
+export const get_update_defi_protocols_values_manifest = async (
+  protocolNames: string[],
+  morpherData: { coinAddress: string; message: string; signature: string }[],
+) => {
+  const addressResult = await typescriptWallet.getAccountAddress();
+
+  if (addressResult.isErr()) {
+    throw new Error(`Failed to get account address: ${addressResult.error}`);
+  }
+  const accountAddress = addressResult.value;
+
+  return `
+    CALL_METHOD
+      Address("${accountAddress}")
+      "create_proof_of_amount"
+      Address("${FUND_BOT_BADGE}")
+      Decimal("1")
+    ;
+    CALL_METHOD
+      Address("${FUND_MANAGER_COMPONENT}")
+      "update_defi_protocols_value"
+      Set<String>(
+          ${protocolNames.map((name) => `"${name}"`).join(",\n          ")}
+      )
+      Map<Address, Tuple>(
+          ${morpherData
+            .map(
+              (item) =>
+                `Address("${item.coinAddress}") => Tuple("${item.message}", "${item.signature}")`,
+            )
+            .join(", ")}
+      )
+    ;
+    `;
+};
