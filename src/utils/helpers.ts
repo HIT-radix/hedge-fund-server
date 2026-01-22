@@ -5,7 +5,8 @@ import {
 import { Decimal } from "decimal.js";
 import { sendTransactionManifest } from "@/wallet/helpers";
 import { generateRandomNonce } from "@radixdlt/radix-engine-toolkit";
-import { getFundUnitValueManifest } from "./manifests";
+import { get_fund_unit_value_manifest } from "./manifests";
+import { FUND_MANAGER_COMPONENT } from "@/constants/address";
 
 // Configure Decimal for our use case
 Decimal.config({
@@ -159,7 +160,10 @@ export const getFundUnitValue = async (
   gatewayApi: GatewayApiClient,
 ): Promise<{ net_value: string; gross_value: string } | undefined> => {
   try {
-    const txResult = await simulateTx(getFundUnitValueManifest(), gatewayApi);
+    const txResult = await simulateTx(
+      get_fund_unit_value_manifest(),
+      gatewayApi,
+    );
     const receipt = txResult.receipt as {
       output: {
         programmatic_json: { fields: { kind: string; value: string }[] };

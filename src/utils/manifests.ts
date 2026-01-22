@@ -204,7 +204,7 @@ export const set_defi_protocols_percentages_manifest = async (
     ;`;
 };
 
-export const getFundUnitValueManifest = () => {
+export const get_fund_unit_value_manifest = () => {
   return `
     CALL_METHOD
       Address("${FUND_MANAGER_COMPONENT}")
