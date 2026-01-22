@@ -177,3 +177,30 @@ export const getFundUnitValue = async (
     return undefined;
   }
 };
+
+export const fetchHedgeFundProtocolsList = async (
+  gatewayApi: GatewayApiClient,
+) => {
+  try {
+    const result = await gatewayApi.state.getEntityDetailsVaultAggregated(
+      FUND_MANAGER_COMPONENT,
+    );
+    if (result.details.type === "Component") {
+      const componentState = result.details.state as {
+        fields: {
+          kind: string;
+          field_name: string;
+          elements: { kind: string; value: string }[];
+        }[];
+      };
+      const protocols = componentState.fields.find(
+        (f) => f.field_name === "defi_protocols_list",
+      );
+      if (protocols?.elements?.length > 0) {
+        return protocols.elements.map((el) => el.value);
+      }
+    }
+  } catch (error) {
+    return [];
+  }
+};
