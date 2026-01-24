@@ -234,16 +234,16 @@ export const get_update_defi_protocols_values_manifest = async (
     CALL_METHOD
       Address("${FUND_MANAGER_COMPONENT}")
       "update_defi_protocols_value"
-      Set<String>(
-          ${protocolNames.map((name) => `"${name}"`).join(",\n          ")}
+      Array<String>(
+        ${protocolNames.map((name) => `"${name}"`).join(",\n          ")}
       )
       Map<Address, Tuple>(
-          ${morpherData
-            .map(
-              (item) =>
-                `Address("${item.coinAddress}") => Tuple("${item.message}", "${item.signature}")`,
-            )
-            .join(", ")}
+        ${morpherData
+          .map(
+            (item) =>
+              `Address("${item.coinAddress}") => Tuple("${item.message}", "${item.signature}")`,
+          )
+          .join(", ")}
       )
     ;
     `;
