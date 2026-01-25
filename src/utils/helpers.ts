@@ -5,7 +5,10 @@ import {
 import { Decimal } from "decimal.js";
 import { sendTransactionManifest } from "@/wallet/helpers";
 import { generateRandomNonce } from "@radixdlt/radix-engine-toolkit";
-import { get_fund_unit_value_manifest } from "./manifests";
+import {
+  get_fund_unit_value_manifest,
+  getHedgeFundDetailsManifest,
+} from "./manifests";
 import { FUND_MANAGER_COMPONENT } from "@/constants/address";
 
 // Configure Decimal for our use case
@@ -206,5 +209,36 @@ export const fetchHedgeFundProtocolsList = async (
     }
   } catch (error) {
     return [];
+  }
+};
+
+export const getHedgeFundDetail = async (gatewayApi: GatewayApiClient) => {
+  try {
+    const txResult = await simulateTx(
+      getHedgeFundDetailsManifest(),
+      gatewayApi,
+    );
+    const receipt = txResult.receipt as {
+      output: {
+        programmatic_json: {
+          entries: {
+            key: { kind: string; value: string };
+            value: { kind: string; value: string };
+          }[];
+        };
+      }[];
+    };
+    const fundsDetails: Record<string, string> = {};
+    let totalFunds = new Decimal(0);
+    receipt?.output[0]?.programmatic_json?.entries.forEach((entry) => {
+      if (entry.key.kind === "String" && entry.value.kind === "Decimal") {
+        fundsDetails[entry.key.value] = entry.value.value;
+        totalFunds = totalFunds.plus(entry.value.value);
+      }
+    });
+    return { fundsDetails, totalFunds: totalFunds.toString() };
+  } catch (error) {
+    console.log("Unable to get fund unit value");
+    return undefined;
   }
 };

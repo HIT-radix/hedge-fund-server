@@ -7,7 +7,10 @@ import {
 } from "@nestjs/common";
 import { LsuHolderService } from "./services/lsu-holder.service";
 import { getPriceDataFromMorpherOracle } from "@/utils/oracle";
-import { fetchHedgeFundProtocolsList } from "@/utils/helpers";
+import {
+  fetchHedgeFundProtocolsList,
+  getHedgeFundDetail,
+} from "@/utils/helpers";
 import { fetchValidatorInfo } from "radix-utils";
 import {
   DAPP_DEFINITION_ADDRESS,
@@ -193,6 +196,31 @@ export class CommonController {
       this.logger.error("Error fetching hedge fund protocols list:", error);
       throw new HttpException(
         (error as Error).message || "Failed to retrieve hedge fund protocols",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get("hedge-fund-protocols-details")
+  async getHedgeFundProtocolsDetails() {
+    try {
+      this.logger.log("Fetching hedge fund protocols details...");
+
+      const protocols = await getHedgeFundDetail(this.gatewayApi);
+
+      return {
+        success: true,
+        message: "Hedge fund protocols details retrieved successfully",
+        data: protocols,
+        meta: {
+          timestamp: new Date().toISOString(),
+        },
+      };
+    } catch (error) {
+      this.logger.error("Error fetching hedge fund protocols details:", error);
+      throw new HttpException(
+        (error as Error).message ||
+          "Failed to retrieve hedge fund protocols details",
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

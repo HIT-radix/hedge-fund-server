@@ -248,3 +248,12 @@ export const get_update_defi_protocols_values_manifest = async (
     ;
     `;
 };
+
+export const getHedgeFundDetailsManifest = () => {
+  return `
+    CALL_METHOD
+      Address("${FUND_MANAGER_COMPONENT}")
+      "fund_details"
+    ;
+  `;
+};
