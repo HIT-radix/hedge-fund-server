@@ -7,6 +7,7 @@ import { LedgerState } from "@/database/entities/ledger-state.entity";
 import { Snapshot } from "@/database/entities/snapshot.entity";
 import { SnapshotAccount } from "@/database/entities/snapshot-account.entity";
 import { FuValue } from "@/database/entities/fund-unit-value.entity";
+import { FundValue } from "@/database/entities/fund-value.entity";
 import { LsuHolderService } from "@/common/services/lsu-holder.service";
 
 @Module({
@@ -17,6 +18,7 @@ import { LsuHolderService } from "@/common/services/lsu-holder.service";
       Snapshot,
       SnapshotAccount,
       FuValue,
+      FundValue,
     ]),
   ],
   controllers: [SnapshotsController],

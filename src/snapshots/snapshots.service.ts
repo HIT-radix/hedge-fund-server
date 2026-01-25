@@ -8,6 +8,7 @@ import { LedgerState } from "@/database/entities/ledger-state.entity";
 import { Snapshot } from "@/database/entities/snapshot.entity";
 import { SnapshotAccount } from "@/database/entities/snapshot-account.entity";
 import { FuValue } from "@/database/entities/fund-unit-value.entity";
+import { FundValue } from "@/database/entities/fund-value.entity";
 import { SnapshotState } from "@/interfaces/enum";
 import { RADIX_CONFIG } from "@/config/radix.config";
 import {
@@ -22,6 +23,7 @@ import {
   executeTransactionManifest,
   fetchHedgeFundProtocolsList,
   getFundUnitValue,
+  getHedgeFundDetail,
 } from "@/utils/helpers";
 import {
   get_finish_unstake_manifest,
@@ -58,6 +60,8 @@ export class SnapshotsService {
     private snapshotAccountRepository: Repository<SnapshotAccount>,
     @InjectRepository(FuValue)
     private fuValueRepository: Repository<FuValue>,
+    @InjectRepository(FundValue)
+    private fundValueRepository: Repository<FundValue>,
     private dataSource: DataSource,
     private readonly lsuHolderService: LsuHolderService,
   ) {
@@ -1142,6 +1146,47 @@ export class SnapshotsService {
       this.logger.error("Unable to store fund unit value snapshot:", error);
       await this.pingErrorToTg(
         `[FundUnitValue] Unable to store fund unit value snapshot: ${
+          (error as Error)?.message || error
+        }`,
+      );
+      return undefined;
+    }
+  }
+
+  @Cron("0 0 23 * * *", { timeZone: "UTC" })
+  async takeSnapshotOfTotalFundValue(): Promise<FundValue | undefined> {
+    try {
+      const fundDetails = await getHedgeFundDetail(this.gatewayApi);
+      const totalFunds = fundDetails?.totalFunds;
+
+      if (!totalFunds) {
+        this.logger.warn("Failed to fetch total fund value");
+        await this.pingErrorToTg(
+          "[TotalFundValue] Failed to fetch total fund value",
+        );
+        return undefined;
+      }
+
+      const timestamp = this.normalizeDateToSecond(new Date());
+
+      const savedRecord = await this.withDbRetry(async () => {
+        const record = this.fundValueRepository.create({
+          time: timestamp,
+          value: totalFunds,
+        });
+
+        return await this.fundValueRepository.save(record);
+      });
+
+      this.logger.log(
+        `Stored total fund value snapshot at ${timestamp.toISOString()}: ${totalFunds}`,
+      );
+
+      return savedRecord;
+    } catch (error) {
+      this.logger.error("Unable to store total fund value snapshot:", error);
+      await this.pingErrorToTg(
+        `[TotalFundValue] Unable to store total fund value snapshot: ${
           (error as Error)?.message || error
         }`,
       );

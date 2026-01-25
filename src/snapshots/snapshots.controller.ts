@@ -192,6 +192,37 @@ export class SnapshotsController {
     }
   }
 
+  @Get("take-total-fund-snapshot")
+  async takeTotalFundValueSnapshot(@Query("secret") secret?: string) {
+    try {
+      this.validateAdminSecret(secret);
+      this.logger.log("Taking total fund value snapshot manually...");
+
+      const result = await this.snapshotsService.takeSnapshotOfTotalFundValue();
+
+      if (!result) {
+        throw new HttpException(
+          "Failed to store total fund value snapshot",
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      return {
+        success: true,
+        message: "Total fund value snapshot stored successfully",
+        data: result,
+        meta: { timestamp: new Date().toISOString() },
+      };
+    } catch (error) {
+      this.logger.error("Error taking total fund value snapshot:", error);
+      if (error instanceof HttpException) throw error;
+      throw new HttpException(
+        (error as Error).message || "Failed to take total fund value snapshot",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Get("fund-unit-historic-values")
   async getFundUnitValues(@Query("secret") secret?: string) {
     try {
