@@ -8,5 +8,6 @@ import { ProtocolsMetadataService } from "./protocols-metadata.service";
   imports: [TypeOrmModule.forFeature([Protocol])],
   controllers: [ProtocolsMetadataController],
   providers: [ProtocolsMetadataService],
+  exports: [ProtocolsMetadataService],
 })
 export class ProtocolsMetadataModule {}

@@ -9,8 +9,8 @@ import { SnapshotsModule } from "./snapshots/snapshots.module";
 import { AdminModule } from "./admin/admin.module";
 import { CommonModule } from "./common/common.module";
 
-// Only disable to test non-database features
-const dbEnabled = true;
+// Toggle database features with ENABLE_DB=true (disabled by default for easier local dev)
+const dbEnabled = process.env.ENABLE_DB === "true";
 
 const dbImports = dbEnabled
   ? [

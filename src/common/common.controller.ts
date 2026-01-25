@@ -4,6 +4,7 @@ import {
   HttpException,
   HttpStatus,
   Logger,
+  Optional,
 } from "@nestjs/common";
 import { LsuHolderService } from "./services/lsu-holder.service";
 import { getPriceDataFromMorpherOracle } from "@/utils/oracle";
@@ -16,6 +17,8 @@ import {
   DAPP_DEFINITION_ADDRESS,
   VALIDATOR_ADDRESS,
 } from "@/constants/address";
+import { ProtocolsMetadataService } from "@/admin/protocols-metadata/protocols-metadata.service";
+import { Protocol } from "@/database/entities/protocol-metadata.entity";
 import { GatewayApiClient } from "@radixdlt/babylon-gateway-api-sdk";
 import { RADIX_CONFIG } from "@/config/radix.config";
 
@@ -24,7 +27,11 @@ export class CommonController {
   private readonly logger = new Logger(CommonController.name);
   private readonly gatewayApi: GatewayApiClient;
 
-  constructor(private readonly lsuHolderService: LsuHolderService) {
+  constructor(
+    private readonly lsuHolderService: LsuHolderService,
+    @Optional()
+    private readonly protocolsMetadataService: ProtocolsMetadataService | null,
+  ) {
     this.gatewayApi = GatewayApiClient.initialize({
       networkId: RADIX_CONFIG.NETWORK_ID,
       applicationName: RADIX_CONFIG.APPLICATION_NAME,
@@ -206,14 +213,52 @@ export class CommonController {
     try {
       this.logger.log("Fetching hedge fund protocols details...");
 
-      const protocols = await getHedgeFundDetail(this.gatewayApi);
+      const protocols =
+        (await getHedgeFundDetail(this.gatewayApi)) ||
+        ({ fundsDetails: {}, totalFunds: "0" } as const);
+
+      let protocolsMetadata: Protocol[] = [];
+
+      if (this.protocolsMetadataService) {
+        protocolsMetadata = await this.protocolsMetadataService.findAll();
+      } else {
+        this.logger.warn(
+          "Protocols metadata service unavailable; returning on-chain data only",
+        );
+      }
+      const mapped: Record<
+        string,
+        {
+          value: string;
+          logo: string;
+          platform: string;
+          position: string;
+          apyId: string;
+          id: string;
+        }
+      > = {};
+
+      protocolsMetadata.forEach((protocolMetadata) => {
+        mapped[protocolMetadata.name] = {
+          id: protocolMetadata.name,
+          logo: protocolMetadata.logo_image,
+          platform: protocolMetadata.platform_name,
+          position: protocolMetadata.description || "",
+          apyId: protocolMetadata.apyid || "",
+          value: protocols.fundsDetails[protocolMetadata.name] ?? "0",
+        };
+      });
 
       return {
         success: true,
         message: "Hedge fund protocols details retrieved successfully",
-        data: protocols,
+        data: {
+          fundsDetails: Object.values(mapped),
+          totalFunds: protocols.totalFunds,
+        },
         meta: {
           timestamp: new Date().toISOString(),
+          totalProtocols: protocolsMetadata.length,
         },
       };
     } catch (error) {
