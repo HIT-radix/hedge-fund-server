@@ -13,6 +13,7 @@ type CreateProtocolInput = {
   name: string;
   platform_name: string;
   logo_image: string;
+  account: string;
   apyid?: string | null;
   description?: string | null;
 };
@@ -20,6 +21,7 @@ type CreateProtocolInput = {
 type UpdateProtocolInput = {
   platform_name?: string;
   logo_image?: string;
+  account?: string;
   apyid?: string | null;
   description?: string | null;
 };
@@ -49,6 +51,7 @@ export class ProtocolsMetadataService {
       name: input.name,
       platform_name: input.platform_name,
       logo_image: input.logo_image,
+      account: input.account,
       apyid: input.apyid ?? null,
       description: input.description ?? null,
     });
@@ -91,6 +94,10 @@ export class ProtocolsMetadataService {
 
     if (input.logo_image !== undefined) {
       updateData.logo_image = input.logo_image;
+    }
+
+    if (input.account !== undefined) {
+      updateData.account = input.account;
     }
 
     if (input.apyid !== undefined) {

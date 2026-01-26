@@ -11,6 +11,9 @@ export class Protocol {
   @Column({ type: "varchar", length: 255 })
   logo_image: string;
 
+  @Column({ type: "varchar", length: 80 })
+  account: string;
+
   @Column({ type: "varchar", length: 255, nullable: true })
   apyid: string | null;
 

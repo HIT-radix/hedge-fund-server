@@ -18,6 +18,7 @@ interface CreateProtocolBody {
   name?: string;
   platform_name?: string;
   logo_image?: string;
+  account?: string;
   apyid?: string | null;
   description?: string | null;
 }
@@ -26,6 +27,7 @@ interface UpdateProtocolBody {
   secret?: string;
   platform_name?: string;
   logo_image?: string;
+  account?: string;
   apyid?: string | null;
   description?: string | null;
 }
@@ -63,6 +65,7 @@ export class ProtocolsMetadataController {
       this.validateAdminSecret(payload?.secret);
 
       const { name, platform_name, logo_image, apyid, description } = payload;
+      const account = payload.account;
 
       if (!name?.trim()) {
         throw new HttpException(
@@ -85,10 +88,15 @@ export class ProtocolsMetadataController {
         );
       }
 
+      if (!account?.trim()) {
+        throw new HttpException("Account is required", HttpStatus.BAD_REQUEST);
+      }
+
       const created = await this.protocolsMetadataService.create({
         name: name.trim(),
         platform_name: platform_name.trim(),
         logo_image: logo_image.trim(),
+        account: account.trim(),
         apyid: apyid?.trim?.() ? apyid?.trim?.() : null,
         description: description?.trim?.() ? description?.trim?.() : null,
       });
@@ -160,6 +168,7 @@ export class ProtocolsMetadataController {
       const hasUpdatableField =
         payload.platform_name ||
         payload.logo_image ||
+        payload.account ||
         payload.apyid !== undefined ||
         payload.description !== undefined;
 
@@ -173,6 +182,7 @@ export class ProtocolsMetadataController {
       const updated = await this.protocolsMetadataService.update(id, {
         platform_name: payload.platform_name?.trim?.(),
         logo_image: payload.logo_image?.trim?.(),
+        account: payload.account?.trim?.(),
         apyid: payload.apyid?.trim?.() ?? payload.apyid ?? undefined,
         description:
           payload.description?.trim?.() ?? payload.description ?? undefined,

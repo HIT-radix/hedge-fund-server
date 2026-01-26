@@ -226,34 +226,33 @@ export class CommonController {
           "Protocols metadata service unavailable; returning on-chain data only",
         );
       }
-      const mapped: Record<
-        string,
-        {
-          value: string;
-          logo: string;
-          platform: string;
-          position: string;
-          apyId: string;
-          id: string;
-        }
-      > = {};
+      const mapped: {
+        value: string;
+        logo: string;
+        platform: string;
+        position: string;
+        apyId: string;
+        id: string;
+        account: string;
+      }[] = [];
 
       protocolsMetadata.forEach((protocolMetadata) => {
-        mapped[protocolMetadata.name] = {
+        mapped.push({
           id: protocolMetadata.name,
           logo: protocolMetadata.logo_image,
           platform: protocolMetadata.platform_name,
           position: protocolMetadata.description || "",
           apyId: protocolMetadata.apyid || "",
+          account: protocolMetadata.account,
           value: protocols.fundsDetails[protocolMetadata.name] ?? "0",
-        };
+        });
       });
 
       return {
         success: true,
         message: "Hedge fund protocols details retrieved successfully",
         data: {
-          fundsDetails: Object.values(mapped),
+          fundsDetails: mapped,
           totalFunds: protocols.totalFunds,
         },
         meta: {
