@@ -21,6 +21,7 @@ import { ProtocolsMetadataService } from "@/admin/protocols-metadata/protocols-m
 import { Protocol } from "@/database/entities/protocol-metadata.entity";
 import { GatewayApiClient } from "@radixdlt/babylon-gateway-api-sdk";
 import { RADIX_CONFIG } from "@/config/radix.config";
+import Decimal from "decimal.js";
 
 @Controller("common")
 export class CommonController {
@@ -234,6 +235,7 @@ export class CommonController {
         apyId: string;
         id: string;
         account: string;
+        percentage: string;
       }[] = [];
 
       protocolsMetadata.forEach((protocolMetadata) => {
@@ -245,6 +247,12 @@ export class CommonController {
           apyId: protocolMetadata.apyid || "",
           account: protocolMetadata.account,
           value: protocols.fundsDetails[protocolMetadata.name] ?? "0",
+          percentage: new Decimal(
+            protocols.fundsDetails[protocolMetadata.name] || "0",
+          )
+            .div(protocols.totalFunds)
+            .mul(100)
+            .toFixed(2),
         });
       });
 
