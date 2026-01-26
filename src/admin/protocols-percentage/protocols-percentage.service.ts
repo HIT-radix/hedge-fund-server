@@ -19,6 +19,40 @@ export class ProtocolsPercentageService {
     private readonly protocolPercentageRepository: Repository<ProtocolPercentage>,
   ) {}
 
+  async addProtocolPercentage(
+    protocol: string,
+    percentage = 0,
+  ): Promise<ProtocolPercentage> {
+    const name = protocol?.trim();
+
+    if (!name) {
+      throw new Error("Protocol name is required");
+    }
+
+    if (!Number.isInteger(percentage)) {
+      throw new Error("Percentage must be an integer");
+    }
+
+    if (percentage < 0 || percentage > 100) {
+      throw new Error("Percentage must be between 0 and 100");
+    }
+
+    const exists = await this.protocolPercentageRepository.findOne({
+      where: { name },
+    });
+
+    if (exists) {
+      throw new Error(`Protocol ${name} already exists`);
+    }
+
+    const entity = this.protocolPercentageRepository.create({
+      name,
+      percentage,
+    });
+
+    return this.protocolPercentageRepository.save(entity);
+  }
+
   async setProtocolsPercentages(
     percentages: ProtocolPercentagePayload[],
   ): Promise<{ txId: string | undefined }> {
