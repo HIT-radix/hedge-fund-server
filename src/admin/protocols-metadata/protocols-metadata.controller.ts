@@ -6,7 +6,6 @@ import {
   HttpException,
   HttpStatus,
   Logger,
-  Param,
   Patch,
   Post,
   Query,
@@ -23,14 +22,22 @@ interface CreateProtocolBody {
   description?: string | null;
 }
 
-interface UpdateProtocolBody {
+interface IdPayload {
   secret?: string;
+  id?: string;
+}
+
+interface FindProtocolBody extends IdPayload {}
+
+interface UpdateProtocolBody extends IdPayload {
   platform_name?: string;
   logo_image?: string;
   account?: string;
   apyid?: string | null;
   description?: string | null;
 }
+
+interface DeleteProtocolBody extends IdPayload {}
 
 @Controller("admin/protocols-metadata")
 export class ProtocolsMetadataController {
@@ -138,10 +145,20 @@ export class ProtocolsMetadataController {
     }
   }
 
-  @Get(":id")
-  async findOne(@Param("id") id: string, @Query("secret") secret?: string) {
+  @Post("find")
+  async findOne(@Body() payload: FindProtocolBody) {
+    let id: string | undefined;
     try {
-      this.validateAdminSecret(secret);
+      this.validateAdminSecret(payload?.secret);
+
+      id = payload.id?.trim();
+
+      if (!id) {
+        throw new HttpException(
+          "Protocol id is required",
+          HttpStatus.BAD_REQUEST,
+        );
+      }
 
       const data = await this.protocolsMetadataService.findOne(id);
 
@@ -160,10 +177,20 @@ export class ProtocolsMetadataController {
     }
   }
 
-  @Patch(":id")
-  async update(@Param("id") id: string, @Body() payload: UpdateProtocolBody) {
+  @Patch()
+  async update(@Body() payload: UpdateProtocolBody) {
+    let id: string | undefined;
     try {
       this.validateAdminSecret(payload?.secret);
+
+      id = payload.id?.trim();
+
+      if (!id) {
+        throw new HttpException(
+          "Protocol id is required",
+          HttpStatus.BAD_REQUEST,
+        );
+      }
 
       const hasUpdatableField =
         payload.platform_name ||
@@ -203,10 +230,20 @@ export class ProtocolsMetadataController {
     }
   }
 
-  @Delete(":id")
-  async remove(@Param("id") id: string, @Query("secret") secret?: string) {
+  @Delete()
+  async remove(@Body() payload: DeleteProtocolBody) {
+    let id: string | undefined;
     try {
-      this.validateAdminSecret(secret);
+      this.validateAdminSecret(payload?.secret);
+
+      id = payload.id?.trim();
+
+      if (!id) {
+        throw new HttpException(
+          "Protocol id is required",
+          HttpStatus.BAD_REQUEST,
+        );
+      }
 
       await this.protocolsMetadataService.remove(id);
 
