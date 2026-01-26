@@ -8,6 +8,7 @@ import {
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Protocol } from "@/database/entities/protocol-metadata.entity";
+import { ProtocolPercentage } from "@/database/entities/protocol-percentage.entity";
 
 type CreateProtocolInput = {
   name: string;
@@ -33,33 +34,51 @@ export class ProtocolsMetadataService {
   constructor(
     @InjectRepository(Protocol)
     private readonly protocolRepository: Repository<Protocol>,
+    @InjectRepository(ProtocolPercentage)
+    private readonly protocolPercentageRepository: Repository<ProtocolPercentage>,
   ) {}
 
   async create(input: CreateProtocolInput): Promise<Protocol> {
-    const existing = await this.protocolRepository.findOne({
-      where: { name: input.name },
-    });
+    return this.protocolRepository.manager.transaction(async (manager) => {
+      const protocolRepo = manager.getRepository(Protocol);
+      const percentageRepo = manager.getRepository(ProtocolPercentage);
 
-    if (existing) {
-      throw new HttpException(
-        `Protocol with name ${input.name} already exists`,
-        HttpStatus.CONFLICT,
+      const existing = await protocolRepo.findOne({
+        where: { name: input.name },
+      });
+
+      if (existing) {
+        throw new HttpException(
+          `Protocol with name ${input.name} already exists`,
+          HttpStatus.CONFLICT,
+        );
+      }
+
+      const entity = protocolRepo.create({
+        name: input.name,
+        platform_name: input.platform_name,
+        logo_image: input.logo_image,
+        account: input.account,
+        apyid: input.apyid ?? null,
+        description: input.description ?? null,
+      });
+
+      const saved = await protocolRepo.save(entity);
+
+      await percentageRepo.upsert(
+        {
+          name: saved.name,
+          percentage: 0,
+        },
+        ["name"],
       );
-    }
 
-    const entity = this.protocolRepository.create({
-      name: input.name,
-      platform_name: input.platform_name,
-      logo_image: input.logo_image,
-      account: input.account,
-      apyid: input.apyid ?? null,
-      description: input.description ?? null,
+      this.logger.log(
+        `Created protocol metadata and initialized percentage for ${saved.name}`,
+      );
+
+      return saved;
     });
-
-    const saved = await this.protocolRepository.save(entity);
-    this.logger.log(`Created protocol metadata for ${saved.name}`);
-
-    return saved;
   }
 
   async findAll(): Promise<Protocol[]> {
