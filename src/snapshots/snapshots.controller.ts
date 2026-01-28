@@ -247,6 +247,30 @@ export class SnapshotsController {
     }
   }
 
+  @Get("total-fund-historic-values")
+  async getTotalFundValues(@Query("secret") secret?: string) {
+    try {
+      this.validateAdminSecret(secret);
+      this.logger.log("Fetching all total fund value records...");
+
+      const values = await this.snapshotsService.getTotalFundValues();
+
+      return {
+        success: true,
+        count: values.length,
+        data: values,
+        meta: { timestamp: new Date().toISOString() },
+      };
+    } catch (error) {
+      this.logger.error("Error fetching total fund value records:", error);
+      if (error instanceof HttpException) throw error;
+      throw new HttpException(
+        (error as Error).message || "Failed to fetch total fund value records",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Get()
   async getAllSnapshots(@Query("secret") secret?: string) {
     try {

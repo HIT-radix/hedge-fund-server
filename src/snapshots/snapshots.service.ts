@@ -456,6 +456,27 @@ export class SnapshotsService {
   }
 
   /**
+   * Fetch all total fund value snapshots ordered by time descending
+   */
+  async getTotalFundValues(): Promise<FundValue[]> {
+    try {
+      this.logger.log("Fetching all total fund value records");
+
+      const values = await this.withDbRetry(async () => {
+        return await this.fundValueRepository.find({
+          order: { time: "DESC" },
+        });
+      });
+
+      this.logger.log(`Fetched ${values.length} total fund value records`);
+      return values;
+    } catch (error) {
+      this.logger.error("Error fetching total fund value records:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Fetch snapshot accounts with optional filters.
    * If no filters are provided, returns all snapshot accounts.
    * @param walletAddress (optional) filter by a specific wallet/account address
