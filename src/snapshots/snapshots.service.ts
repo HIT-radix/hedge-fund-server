@@ -660,19 +660,68 @@ export class SnapshotsService {
     protocolNames: string[],
     morpherData: MorpherPriceData,
   ) {
+    const BATCH_SIZE = 5;
+    const totalBatches = Math.ceil(protocolNames.length / BATCH_SIZE);
     const morpherMessage = priceMsgToMorpherString(morpherData);
     const morpherSignature = morpherData.signature;
-    const manifest = await get_update_defi_protocols_values_manifest(
-      protocolNames,
-      [
-        {
-          coinAddress: XRD_RESOURCE_ADDRESS,
-          message: morpherMessage,
-          signature: morpherSignature,
-        },
-      ],
+    const txIds: string[] = [];
+
+    this.logger.log(
+      `Updating protocols values for ${protocolNames.length} protocols in ${totalBatches} batches (max ${BATCH_SIZE} per batch)`,
     );
-    return await executeTransactionManifest(manifest, 10);
+
+    for (let i = 0; i < totalBatches; i++) {
+      const startIndex = i * BATCH_SIZE;
+      const endIndex = Math.min(startIndex + BATCH_SIZE, protocolNames.length);
+      const batch = protocolNames.slice(startIndex, endIndex);
+
+      this.logger.log(
+        `Processing protocol values batch ${i + 1}/${totalBatches} with ${batch.length} protocols`,
+      );
+
+      try {
+        const manifest = await get_update_defi_protocols_values_manifest(
+          batch,
+          [
+            {
+              coinAddress: XRD_RESOURCE_ADDRESS,
+              message: morpherMessage,
+              signature: morpherSignature,
+            },
+          ],
+        );
+
+        const result = await executeTransactionManifest(manifest, 15);
+
+        if (!result.success) {
+          this.logger.error(
+            `Failed to execute protocol update batch ${i + 1}/${totalBatches}:`,
+            result.error,
+          );
+          throw new Error(`Batch ${i + 1} failed: ${result.txId || ""}`);
+        }
+
+        if (result.txId) {
+          txIds.push(result.txId);
+        }
+
+        this.logger.log(
+          `Successfully executed protocol update batch ${i + 1}/${totalBatches} with transaction ID: ${result.txId}`,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Error executing protocol update batch ${i + 1}/${totalBatches}:`,
+          error,
+        );
+        throw error;
+      }
+    }
+
+    this.logger.log(
+      `Successfully completed all ${totalBatches} protocol update batches. Total txIds recorded: ${txIds.length}`,
+    );
+
+    return { success: true, txIds };
   }
 
   async pingFundManagerToDistributeFundsUnitsOperation(
@@ -1131,7 +1180,7 @@ export class SnapshotsService {
           this.logger.warn("Failed to update DeFi protocols values");
           await this.pingErrorToTg(
             `[FundUnitValue] Failed to update DeFi protocols values ${
-              pingResult.txId || ""
+              pingResult.txIds.map((txid) => txid).join(", ") || ""
             }`,
           );
           return undefined;
