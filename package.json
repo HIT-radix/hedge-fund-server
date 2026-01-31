@@ -1,6 +1,6 @@
 {
   "name": "hedge-fund-server",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "A simple NestJS hedge fund server",
   "main": "dist/main.js",
   "scripts": {
