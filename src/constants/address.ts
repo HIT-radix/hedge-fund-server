@@ -55,3 +55,8 @@ export const WEFT_COLLATERAL_NFT_RESOURCE_ADDRESS =
   process.env.ENVIRONMENT === "dev"
     ? "resource_rdx1nt22yfvhuuhxww7jnnml5ec3yt5pkxh0qlghm6f0hz46z2wfk80s9r"
     : "resource_rdx1nt22yfvhuuhxww7jnnml5ec3yt5pkxh0qlghm6f0hz46z2wfk80s9r";
+
+export const HEDGE_FUND_BOT_ADDRESS =
+  process.env.ENVIRONMENT === "dev"
+    ? "account_rdx129puw6c9lhw9f5wceaeumj97lmaryzc8z2sdzk76z99ackqhc7f7yg"
+    : "account_rdx129puw6c9lhw9f5wceaeumj97lmaryzc8z2sdzk76z99ackqhc7f7yg";
