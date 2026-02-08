@@ -24,6 +24,7 @@ import {
   fetchHedgeFundProtocolsList,
   getFundUnitValue,
   getHedgeFundDetail,
+  pingErrorToTg,
 } from "@/utils/helpers";
 import {
   get_finish_unstake_manifest,
@@ -875,7 +876,7 @@ export class SnapshotsService {
         this.logger.warn(
           "[CRON] scheduledOperation_STEP_1 failed, snapshot deleted",
         );
-        await this.pingErrorToTg(
+        await pingErrorToTg(
           `[CRON] scheduledOperation_STEP_1 failed, snapshot deleted ${
             pingResult.txId || ""
           }`,
@@ -883,7 +884,7 @@ export class SnapshotsService {
       }
     } catch (error) {
       this.logger.error("[CRON] scheduledOperation_STEP_1 failed:", error);
-      await this.pingErrorToTg(
+      await pingErrorToTg(
         `[CRON] scheduledOperation_STEP_1 failed: ${error.message || error}`,
       );
       throw error;
@@ -954,7 +955,7 @@ export class SnapshotsService {
       }
     } catch (error) {
       this.logger.error("[CRON] scheduledOperation_STEP_2 failed:", error);
-      await this.pingErrorToTg(
+      await pingErrorToTg(
         `[CRON] scheduledOperation_STEP_2 failed: ${error.message || error}`,
       );
       throw error;
@@ -1120,7 +1121,7 @@ export class SnapshotsService {
       }
     } catch (error) {
       this.logger.error("[CRON] scheduledOperation_STEP_3 failed:", error);
-      await this.pingErrorToTg(
+      await pingErrorToTg(
         `[CRON] scheduledOperation_STEP_3 failed: ${error.message || error}`,
       );
       throw error;
@@ -1178,7 +1179,7 @@ export class SnapshotsService {
           );
         if (!pingResult.success) {
           this.logger.warn("Failed to update DeFi protocols values");
-          await this.pingErrorToTg(
+          await pingErrorToTg(
             `[FundUnitValue] Failed to update DeFi protocols values ${
               pingResult.txIds.map((txid) => txid).join(", ") || ""
             }`,
@@ -1190,9 +1191,7 @@ export class SnapshotsService {
       const fundUnitValues = await getFundUnitValue(this.gatewayApi);
       if (!fundUnitValues) {
         this.logger.warn("Failed to fetch fund unit values");
-        await this.pingErrorToTg(
-          "[FundUnitValue] Failed to fetch fund unit values",
-        );
+        await pingErrorToTg("[FundUnitValue] Failed to fetch fund unit values");
         return undefined;
       }
 
@@ -1214,7 +1213,7 @@ export class SnapshotsService {
       return savedRecord;
     } catch (error) {
       this.logger.error("Unable to store fund unit value snapshot:", error);
-      await this.pingErrorToTg(
+      await pingErrorToTg(
         `[FundUnitValue] Unable to store fund unit value snapshot: ${
           (error as Error)?.message || error
         }`,
@@ -1231,7 +1230,7 @@ export class SnapshotsService {
 
       if (!totalFunds) {
         this.logger.warn("Failed to fetch total fund value");
-        await this.pingErrorToTg(
+        await pingErrorToTg(
           "[TotalFundValue] Failed to fetch total fund value",
         );
         return undefined;
@@ -1255,7 +1254,7 @@ export class SnapshotsService {
       return savedRecord;
     } catch (error) {
       this.logger.error("Unable to store total fund value snapshot:", error);
-      await this.pingErrorToTg(
+      await pingErrorToTg(
         `[TotalFundValue] Unable to store total fund value snapshot: ${
           (error as Error)?.message || error
         }`,
