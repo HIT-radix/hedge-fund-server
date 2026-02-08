@@ -9,7 +9,12 @@ import {
   get_fund_unit_value_manifest,
   getHedgeFundDetailsManifest,
 } from "./manifests";
-import { FUND_MANAGER_COMPONENT } from "@/constants/address";
+import {
+  FUND_MANAGER_COMPONENT,
+  MORPHER_ORACLE_COMPONENT_ADDRESS,
+  MORPHER_ORACLE_NFT_ID,
+  MORPHER_ORACLE_NFT_RESOURCE_ADDRESS,
+} from "@/constants/address";
 import { HIT_SERVER_URL } from "@/constants/endpoints";
 
 // Configure Decimal for our use case
@@ -268,4 +273,53 @@ export const pingErrorToTg = async (
     console.error("pingErrorToTg error:", error);
     return null;
   }
+};
+
+export const getMorpherSubscriptionFeeValue = async (
+  gatewayApi: GatewayApiClient,
+) => {
+  const res = await gatewayApi.state.getEntityDetailsVaultAggregated(
+    MORPHER_ORACLE_COMPONENT_ADDRESS,
+  );
+
+  let subscriptionFee = "1";
+
+  if (res.details.type === "Component") {
+    const componentState = res.details.state as {
+      fields: {
+        kind: string;
+        field_name: string;
+        value: string;
+      }[];
+    };
+    componentState.fields.forEach((field) => {
+      if (field.field_name === "monthly_subscription_fee") {
+        subscriptionFee = field.value;
+      }
+    });
+  }
+  return subscriptionFee;
+};
+
+export const getMorpherSubscriptionExpirationTime = async (
+  gatewayApi: GatewayApiClient,
+) => {
+  const res = await gatewayApi.state.getNonFungibleData(
+    MORPHER_ORACLE_NFT_RESOURCE_ADDRESS,
+    [MORPHER_ORACLE_NFT_ID],
+  );
+
+  const morpherNFTData = res[0];
+  let expirationTimeStamp = "0";
+
+  if (morpherNFTData.data.programmatic_json.kind === "Tuple") {
+    const fields = morpherNFTData.data.programmatic_json.fields;
+
+    fields.forEach((field) => {
+      if (field.kind === "U64" && field.field_name === "expiration_time") {
+        expirationTimeStamp = field.value;
+      }
+    });
+  }
+  return expirationTimeStamp;
 };
