@@ -831,10 +831,10 @@ export class SnapshotsService {
   }
 
   /**
-   * Scheduled operation STEP 1 - Runs every thursday at 23:00 UTC
+   * Scheduled operation STEP 1 - Runs daily at 10:00 UTC
    * Creates snapshot and starts unlock operation
    */
-  @Cron("0 0 23 * * 4", { timeZone: "UTC" })
+  @Cron("0 0 10 * * *", { timeZone: "UTC" })
   async scheduledOperation_STEP_1() {
     try {
       this.logger.log("[CRON] Starting scheduledOperation_STEP_1");
@@ -892,10 +892,10 @@ export class SnapshotsService {
   }
 
   /**
-   * Scheduled operation STEP 2 - Runs every saturday at 12:30 UTC
+   * Scheduled operation STEP 2 - Runs daily at 13:00 UTC
    * Starts unstake operation for existing snapshots
    */
-  @Cron("0 30 12 * * 6", { timeZone: "UTC" })
+  @Cron("0 0 13 * * *", { timeZone: "UTC" })
   async scheduledOperation_STEP_2() {
     try {
       const nodeInfo = await fetchValidatorInfo(
@@ -963,10 +963,10 @@ export class SnapshotsService {
   }
 
   /**
-   * Scheduled operation STEP 3 - Runs every sunday at 11:30 UTC
+   * Scheduled operation STEP 3 - Runs daily at 16:00 UTC
    * Finishes unstake operation and distributes funds
    */
-  @Cron("0 30 11 * * 0", { timeZone: "UTC" })
+  @Cron("0 0 16 * * *", { timeZone: "UTC" })
   async scheduledOperation_STEP_3() {
     try {
       this.logger.log("[CRON] Starting scheduledOperation_STEP_3");
