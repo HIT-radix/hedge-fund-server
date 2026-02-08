@@ -2,6 +2,9 @@ import {
   ACCOUNT_LOCKER_ADDRESS,
   FUND_BOT_BADGE,
   FUND_MANAGER_COMPONENT,
+  MORPHER_ORACLE_COMPONENT_ADDRESS,
+  MORPHER_ORACLE_NFT_ID,
+  XRD_RESOURCE_ADDRESS,
 } from "@/constants/address";
 import { typescriptWallet } from "@/wallet/config";
 import Decimal from "decimal.js";
@@ -254,6 +257,40 @@ export const getHedgeFundDetailsManifest = () => {
     CALL_METHOD
       Address("${FUND_MANAGER_COMPONENT}")
       "fund_details"
+    ;
+  `;
+};
+
+export const renew_morpher_subscription_manifest = async (fee: string) => {
+  const addressResult = await typescriptWallet.getAccountAddress();
+
+  if (addressResult.isErr()) {
+    throw new Error(`Failed to get account address: ${addressResult.error}`);
+  }
+  const accountAddress = addressResult.value;
+  return `
+    CALL_METHOD
+      Address("${accountAddress}")
+      "withdraw"
+      Address("${XRD_RESOURCE_ADDRESS}")
+      Decimal("${fee}")
+    ;
+    TAKE_FROM_WORKTOP
+      Address("${XRD_RESOURCE_ADDRESS}")
+      Decimal("${fee}")
+      Bucket("bucket")
+    ;
+    CALL_METHOD
+      Address("${MORPHER_ORACLE_COMPONENT_ADDRESS}")
+      "renew_subscription"
+      NonFungibleLocalId("${MORPHER_ORACLE_NFT_ID}")
+      1u64
+      Bucket("bucket")
+    ;
+    CALL_METHOD
+      Address("${accountAddress}")
+      "deposit_batch"
+      Expression("ENTIRE_WORKTOP")
     ;
   `;
 };
