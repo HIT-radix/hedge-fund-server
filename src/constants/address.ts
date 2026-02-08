@@ -60,3 +60,8 @@ export const HEDGE_FUND_BOT_ADDRESS =
   process.env.ENVIRONMENT === "dev"
     ? "account_rdx129puw6c9lhw9f5wceaeumj97lmaryzc8z2sdzk76z99ackqhc7f7yg"
     : "account_rdx129puw6c9lhw9f5wceaeumj97lmaryzc8z2sdzk76z99ackqhc7f7yg";
+
+export const MORPHER_ORACLE_COMPONENT_ADDRESS =
+  process.env.ENVIRONMENT === "dev"
+    ? "component_rdx1cqeam5fe0jmy2x0hfanzcherd8tvfg5pqwfa8sjzw7azuk0d3vwygl"
+    : "component_rdx1cqeam5fe0jmy2x0hfanzcherd8tvfg5pqwfa8sjzw7azuk0d3vwygl";

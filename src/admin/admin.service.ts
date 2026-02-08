@@ -10,7 +10,13 @@ import {
   XRD_RESOURCE_ADDRESS,
 } from "@/constants/address";
 import Decimal from "decimal.js";
-import { pingErrorToTg } from "@/utils/helpers";
+import {
+  executeTransactionManifest,
+  getMorpherSubscriptionExpirationTime,
+  getMorpherSubscriptionFeeValue,
+  pingErrorToTg,
+} from "@/utils/helpers";
+import { renew_morpher_subscription_manifest } from "@/utils/manifests";
 import { checkResourceInUsersFungibleAssets } from "radix-utils";
 
 @Injectable()
@@ -53,7 +59,7 @@ export class AdminService {
     return { address: addressResult.value, publicKeyBls12_381 };
   }
 
-  @Cron("0 */2 * * * *", { timeZone: "UTC" })
+  @Cron("0 10 0 * * *", { timeZone: "UTC" })
   async checkXRDholding() {
     try {
       this.logger.log("[CRON] Running scheduledCheckXRDholding");
@@ -71,6 +77,76 @@ export class AdminService {
       this.logger.error("[CRON] scheduledCheckXRDholding failed:", error);
       await pingErrorToTg(
         `[CRON] scheduledCheckXRDholding failed: ${(error as Error)?.message || error}`,
+      );
+      throw error;
+    }
+  }
+
+  @Cron("0 15 0 * * *", { timeZone: "UTC" })
+  async checkForMorpherSubscriptionRenewal() {
+    try {
+      this.logger.log("Checking for Morpher subscription renewal...");
+      const expirationTime = await getMorpherSubscriptionExpirationTime(
+        this.gatewayApi,
+      );
+
+      const expirationSeconds = Number(expirationTime);
+      const expirationDate = new Date(expirationSeconds * 1000);
+
+      const now = new Date();
+      const dayInMs = 24 * 60 * 60 * 1000;
+
+      // Compare UTC calendar dates to avoid off-by-seconds issues near midnight.
+      const todayUtc = Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+      );
+      const tomorrowUtc = todayUtc + dayInMs;
+      const expirationUtcDate = Date.UTC(
+        expirationDate.getUTCFullYear(),
+        expirationDate.getUTCMonth(),
+        expirationDate.getUTCDate(),
+      );
+
+      const shouldRenew = expirationUtcDate <= tomorrowUtc;
+
+      this.logger.log(
+        `Morpher subscription expiration (UTC date): ${expirationDate.toISOString()} — shouldRenew=${shouldRenew}`,
+      );
+
+      if (shouldRenew) {
+        await this.renewMorpherSubscription();
+      }
+    } catch (error) {
+      this.logger.error(
+        "Error checking for Morpher subscription renewal:",
+        error,
+      );
+      throw error;
+    }
+  }
+
+  private async renewMorpherSubscription() {
+    try {
+      const fee = await getMorpherSubscriptionFeeValue(this.gatewayApi);
+      const manifest = await renew_morpher_subscription_manifest(fee);
+      const txResult = await executeTransactionManifest(manifest);
+
+      if (!txResult.success) {
+        const errorMessage = `Failed to renew Morpher subscription${txResult.txId ? ` (txId: ${txResult.txId})` : ""}: ${txResult.error}`;
+        this.logger.error(errorMessage);
+        await pingErrorToTg(errorMessage);
+        return;
+      }
+
+      this.logger.log(
+        `Morpher subscription renewed successfully (txId: ${txResult.txId})`,
+      );
+    } catch (error) {
+      this.logger.error("Error renewing Morpher subscription:", error);
+      await pingErrorToTg(
+        `Error renewing Morpher subscription: ${(error as Error)?.message || error}`,
       );
       throw error;
     }
