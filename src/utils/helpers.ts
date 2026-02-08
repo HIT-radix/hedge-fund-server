@@ -10,6 +10,7 @@ import {
   getHedgeFundDetailsManifest,
 } from "./manifests";
 import { FUND_MANAGER_COMPONENT } from "@/constants/address";
+import { HIT_SERVER_URL } from "@/constants/endpoints";
 
 // Configure Decimal for our use case
 Decimal.config({
@@ -240,5 +241,31 @@ export const getHedgeFundDetail = async (gatewayApi: GatewayApiClient) => {
   } catch (error) {
     console.log("Unable to get fund unit value");
     return undefined;
+  }
+};
+
+export const pingErrorToTg = async (
+  message: string,
+): Promise<boolean | null> => {
+  try {
+    const url = `${HIT_SERVER_URL}/emit-stake-message`;
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.warn(`pingErrorToTg failed with status ${res.status}: ${body}`);
+      return null;
+    }
+
+    console.log("pingErrorToTg message sent successfully");
+    return true;
+  } catch (error) {
+    console.error("pingErrorToTg error:", error);
+    return null;
   }
 };
